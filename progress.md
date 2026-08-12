@@ -1,10 +1,14 @@
 # Progress
 - [ ] Planned Features
+- [ ] Implemented Dockerization
 - [ ] Implemented Invoice Import
-- [ ] Implemented AI Matching
+- [ ] OCR & Extract Invoice Data
+- [ ] Implemented Data Validation
+- [ ] Implemented Accounting System Import
+- [ ] Implemented CSV to JSON Parser
+- [ ] Implemented AI Matching with Confidence Score
+- [ ] Added Remote E-Mail-Server for Human-In-the-Loop Review
 - [ ] Implemented Human-In-the-Loop Review
 - [ ] Implemented Remote Server
 - [ ] Implemented Tax-ID Verification
-- [ ] Implemented OpenStreetMap Integration for Address Validation
-- [ ] Implemented DATEV API Integration
-- 
+- [ ] Implemented DATEV API Integration Base & Mock
