@@ -53,6 +53,7 @@ public class ClassificationService {
                 invoice.sourceFormat(),
                 invoice.documentTitle(),
                 invoice.seller().name(),
+                invoice.seller().vatId(),
                 invoice.buyer().name(),
                 invoice.invoiceDate(),
                 invoice.totals().net(),

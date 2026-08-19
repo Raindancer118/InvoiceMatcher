@@ -16,6 +16,10 @@ menschliche Prüfung statt direkt in die Buchhaltung.
 - **Pflichtprüfungen** — §14-UStG-Angaben, Rechenprobe Netto + Steuer = Brutto, GWG-Grenze.
 - **Human-in-the-Loop** — Prüfliste mit Freigabe, Korrektur und Ablehnung; optional
   Mailbenachrichtigung.
+- **DATEV-Übergabe** — erzeugt ein DATEV Document-Package (XML-Schnittstelle online, Version
+  6.0): Belegbild, Belegsatzdaten und `document.xml` in einem ZIP. Ob ein Buchungssatz entsteht
+  oder der Beleg nur abgelegt wird, steuert genau wie vorgesehen das Beiliegen der
+  Belegsatzdatendatei. Übergebene Vorgänge werden vermerkt und nicht ein zweites Mal gebucht.
 
 ## Schnellstart
 
@@ -36,6 +40,8 @@ docker compose up --build # als Container
 | `GET`  | `/api/v1/pruefungen/{id}` | einzelner Vorgang |
 | `POST` | `/api/v1/pruefungen/{id}/freigabe` | freigeben, optional mit Korrektur |
 | `POST` | `/api/v1/pruefungen/{id}/ablehnung` | ablehnen, mit Begründung |
+| `GET`  | `/api/v1/export/offen` | freigegebene, noch nicht übergebene Belege |
+| `POST` | `/api/v1/export/datev` | DATEV Document-Package als ZIP (ohne Body: alle offenen) |
 | `GET`  | `/api/v1/stammdaten/partner` | Geschäftspartner |
 | `GET`  | `/api/v1/stammdaten/kategorien` | Warengruppen und Sachkonten |
 | `GET`  | `/api/v1/stammdaten/regeln` | Regelwerk in Anwendungsreihenfolge |
@@ -76,6 +82,20 @@ Der gesamte Kontierungsrahmen steht in `src/main/resources/application.yml` unte
 `invoicematcher` — eigenes Unternehmen, Warengruppen mit Stichwörtern, GWG-Grenze,
 Partnerstammdaten, Review-Schwelle. Eine neue Warengruppe braucht kein Deployment, nur einen
 Eintrag.
+
+## DATEV-Übergabe
+
+```bash
+curl -X POST http://localhost:8080/api/v1/export/datev -o paket.zip
+unzip -l paket.zip
+#   document.xml
+#   01_PDF_Klaus_Furniere.pdf
+#   Rechnungsdaten_5007.xml
+```
+
+Die erzeugten Dateien werden in den Tests gegen die offiziellen DATEV-Schemata validiert
+(`src/test/resources/datev-xsd`). Beträge werden dabei brutto ausgewiesen, weil DATEV in
+`amount` den Rechnungsbetrag erwartet; die interne Vorkontierung rechnet netto.
 
 ## Lizenz und Daten
 

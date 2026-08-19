@@ -3,6 +3,7 @@ package de.pegasus.invoicematcher.review;
 import de.pegasus.invoicematcher.classification.ClassificationReport;
 import de.pegasus.invoicematcher.config.ReviewProperties;
 import de.pegasus.invoicematcher.domain.ClassificationResult;
+import de.pegasus.invoicematcher.export.DocumentStore;
 import de.pegasus.invoicematcher.extraction.SourceDocument;
 import de.pegasus.invoicematcher.classification.ClassificationService;
 import org.springframework.stereotype.Service;
@@ -26,13 +27,15 @@ public class ReviewService {
     private final ReviewRepository repository;
     private final ReviewProperties properties;
     private final ReviewNotifier notifier;
+    private final DocumentStore documents;
 
     public ReviewService(ClassificationService classification, ReviewRepository repository,
-                         ReviewProperties properties, ReviewNotifier notifier) {
+                         ReviewProperties properties, ReviewNotifier notifier, DocumentStore documents) {
         this.classification = classification;
         this.repository = repository;
         this.properties = properties;
         this.notifier = notifier;
+        this.documents = documents;
     }
 
     public ReviewCase submit(SourceDocument document) {
@@ -42,6 +45,7 @@ public class ReviewService {
                 : ReviewStatus.AUTOMATISCH_FREIGEGEBEN;
         ReviewCase reviewCase = repository.save(
                 ReviewCase.opened(UUID.randomUUID().toString(), report, status, Instant.now()));
+        documents.store(reviewCase.id(), document);
         if (status == ReviewStatus.OFFEN) {
             notifier.notifyPending(reviewCase);
         }
@@ -54,6 +58,16 @@ public class ReviewService {
 
     public List<ReviewCase> allCases() {
         return repository.findAll();
+    }
+
+    /** Freigegebene Belege, die noch nicht an DATEV uebergeben wurden. */
+    public List<ReviewCase> exportableCases() {
+        return repository.findAll().stream().filter(ReviewCase::isExportable).toList();
+    }
+
+    /** Haelt fest, dass ein Beleg uebergeben wurde - ein zweiter Export wuerde doppelt buchen. */
+    public ReviewCase markExported(String id, Instant at) {
+        return repository.save(find(id).exported(at));
     }
 
     public ReviewCase find(String id) {

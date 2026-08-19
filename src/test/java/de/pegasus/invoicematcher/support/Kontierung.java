@@ -5,13 +5,22 @@ import de.pegasus.invoicematcher.classification.ConfidenceCalculator;
 import de.pegasus.invoicematcher.config.AccountingProperties;
 import de.pegasus.invoicematcher.extraction.ExtractionService;
 import de.pegasus.invoicematcher.config.CompanyProperties;
+import de.pegasus.invoicematcher.config.DatevExportProperties;
+import de.pegasus.invoicematcher.export.DatevExportService;
+import de.pegasus.invoicematcher.export.InMemoryDocumentStore;
+import de.pegasus.invoicematcher.export.datev.DocumentXmlWriter;
+import de.pegasus.invoicematcher.export.datev.LedgerXmlWriter;
+import de.pegasus.invoicematcher.export.datev.VatRateResolver;
 import de.pegasus.invoicematcher.config.PartnerProperties;
 import de.pegasus.invoicematcher.masterdata.account.AccountAssignmentService;
 import de.pegasus.invoicematcher.masterdata.account.DefaultExpenseAccountResolver;
 import de.pegasus.invoicematcher.masterdata.account.FixedAssetIndicator;
 import de.pegasus.invoicematcher.masterdata.account.KeywordExpenseAccountResolver;
 import de.pegasus.invoicematcher.masterdata.account.RevenueAccountResolver;
+import de.pegasus.invoicematcher.config.ReviewProperties;
 import de.pegasus.invoicematcher.masterdata.partner.InMemoryPartnerRepository;
+import de.pegasus.invoicematcher.review.InMemoryReviewRepository;
+import de.pegasus.invoicematcher.review.ReviewService;
 import de.pegasus.invoicematcher.masterdata.partner.PartnerResolver;
 import de.pegasus.invoicematcher.rules.BookingLineAggregator;
 import de.pegasus.invoicematcher.rules.RuleEngine;
@@ -89,6 +98,36 @@ public final class Kontierung {
     public static ClassificationService standardClassificationService() {
         return new ClassificationService(ExtractionService.standard(), standardRuleEngine(),
                 new ConfidenceCalculator());
+    }
+
+    public static DatevExportProperties datevProperties() {
+        return bind("invoicematcher.datev", DatevExportProperties.class);
+    }
+
+    public static LedgerXmlWriter standardLedgerXmlWriter() {
+        return new LedgerXmlWriter(datevProperties(), new VatRateResolver(accountingProperties()));
+    }
+
+    public static DocumentXmlWriter standardDocumentXmlWriter() {
+        return new DocumentXmlWriter(datevProperties());
+    }
+
+    /**
+     * Der komplette Ablauf ohne Spring-Kontext: Klassifikation, Pruefung und DATEV-Export
+     * teilen sich dieselbe Belegablage.
+     */
+    public record Workflow(ReviewService review, DatevExportService export) {
+    }
+
+    public static Workflow standardWorkflow() {
+        InMemoryDocumentStore documents = new InMemoryDocumentStore();
+        ReviewService review = new ReviewService(standardClassificationService(),
+                new InMemoryReviewRepository(),
+                new ReviewProperties(new java.math.BigDecimal("0.85"), null),
+                reviewCase -> { },
+                documents);
+        return new Workflow(review, new DatevExportService(review, documents,
+                standardDocumentXmlWriter(), standardLedgerXmlWriter()));
     }
 
     private static <T> T bind(String prefix, Class<T> type) {

@@ -4,6 +4,7 @@ import de.pegasus.invoicematcher.classification.ClassificationReport;
 import de.pegasus.invoicematcher.classification.ClassificationService;
 import de.pegasus.invoicematcher.config.ReviewProperties;
 import de.pegasus.invoicematcher.domain.DocumentType;
+import de.pegasus.invoicematcher.export.InMemoryDocumentStore;
 import de.pegasus.invoicematcher.support.Belege;
 import de.pegasus.invoicematcher.support.Kontierung;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,7 +26,8 @@ class ReviewServiceTest {
     void setUp() {
         ClassificationService classification = Kontierung.standardClassificationService();
         ReviewProperties properties = new ReviewProperties(new BigDecimal("0.85"), null);
-        service = new ReviewService(classification, new InMemoryReviewRepository(), properties, notified::add);
+        service = new ReviewService(classification, new InMemoryReviewRepository(), properties, notified::add,
+                new InMemoryDocumentStore());
     }
 
     @Test

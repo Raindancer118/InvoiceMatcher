@@ -15,6 +15,8 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -96,6 +98,49 @@ class BelegApiIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"benutzer\":\"tom\"}"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void handsOutADatevDocumentPackageForApprovedDocuments() throws Exception {
+        mockMvc.perform(multipart("/api/v1/belege").file(upload("09_ZUGFeRD_Unkastester_Furniere.pdf")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("AUTOMATISCH_FREIGEGEBEN"));
+
+        mockMvc.perform(get("/api/v1/export/offen"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.dateiname == '09_ZUGFeRD_Unkastester_Furniere.pdf')]").exists());
+
+        byte[] zip = mockMvc.perform(post("/api/v1/export/datev"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition",
+                        org.hamcrest.Matchers.containsString("DATEV_Belege_")))
+                .andReturn().getResponse().getContentAsByteArray();
+
+        java.util.List<String> namen = new java.util.ArrayList<>();
+        try (java.util.zip.ZipInputStream in =
+                     new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(zip))) {
+            for (java.util.zip.ZipEntry entry = in.getNextEntry(); entry != null; entry = in.getNextEntry()) {
+                namen.add(entry.getName());
+            }
+        }
+        assertThat(namen).contains("document.xml", "09_ZUGFeRD_Unkastester_Furniere.pdf");
+        assertThat(namen).anyMatch(name -> name.startsWith("Rechnungsdaten_"));
+    }
+
+    @Test
+    void reportsAnEmptyExportAsAConflictInsteadOfAnEmptyArchive() throws Exception {
+        // Andere Testfaelle teilen sich den Anwendungskontext; erst leeren, dann pruefen.
+        drainPendingExports();
+
+        mockMvc.perform(post("/api/v1/export/datev"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.title").value("Nichts zu exportieren"));
+    }
+
+    private void drainPendingExports() throws Exception {
+        while (mockMvc.perform(post("/api/v1/export/datev")).andReturn().getResponse().getStatus() == 200) {
+            // weiter, bis kein freigegebener Beleg mehr offen ist
+        }
     }
 
     @Test

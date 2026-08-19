@@ -1,5 +1,6 @@
 package de.pegasus.invoicematcher.api;
 
+import de.pegasus.invoicematcher.export.NothingToExportException;
 import de.pegasus.invoicematcher.extraction.DocumentExtractionException;
 import de.pegasus.invoicematcher.extraction.einvoice.UnsupportedEInvoiceException;
 import de.pegasus.invoicematcher.review.ReviewNotFoundException;
@@ -36,6 +37,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(ReviewNotFoundException.class)
     public ProblemDetail handleUnknownReview(ReviewNotFoundException e) {
         return problem(HttpStatus.NOT_FOUND, "Pruefvorgang unbekannt", e.getMessage());
+    }
+
+    @ExceptionHandler(NothingToExportException.class)
+    public ProblemDetail handleNothingToExport(NothingToExportException e) {
+        return problem(HttpStatus.CONFLICT, "Nichts zu exportieren", e.getMessage());
     }
 
     @ExceptionHandler(ReviewStateException.class)

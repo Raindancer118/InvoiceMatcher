@@ -23,13 +23,14 @@ public record ReviewCaseResponse(String id,
                                  @JsonProperty("eingegangenAm") Instant submittedAt,
                                  @JsonProperty("entschiedenAm") Instant decidedAt,
                                  @JsonProperty("entschiedenVon") String decidedBy,
-                                 @JsonProperty("entscheidungsnotiz") String decisionNote) {
+                                 @JsonProperty("entscheidungsnotiz") String decisionNote,
+                                 @JsonProperty("exportiertAm") Instant exportedAt) {
 
     public static ReviewCaseResponse of(ReviewCase reviewCase) {
         ClassificationReport report = reviewCase.report();
         return new ReviewCaseResponse(reviewCase.id(), reviewCase.status(), report.filename(),
                 report.source(), report.result(), report.findings(),
                 reviewCase.submittedAt(), reviewCase.decidedAt(), reviewCase.decidedBy(),
-                reviewCase.decisionNote());
+                reviewCase.decisionNote(), reviewCase.exportedAt());
     }
 }

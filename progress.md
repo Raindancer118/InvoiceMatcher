@@ -15,11 +15,16 @@
 - [x] Dockerisierung (Multi-Stage-Image, Compose, Healthcheck)
 - [x] GitHub-Actions-Pipeline: Test, Build, Image nach GHCR
 - [x] Abnahmetest über alle 31 Testbelege + Startup-Test des Spring-Kontexts
+- [x] Übersetzung in die DATEV-XML-Schnittstelle online (Document-Package: `document.xml`,
+      Belegsatzdaten, Belegbild), validiert gegen die offiziellen DATEV-Schemata
+- [x] Exportvermerk je Vorgang gegen doppelte Buchung
 
 ## Offen
-- [ ] Übersetzung des internen JSON in die DATEV-XML-Schnittstelle online
 - [ ] Belegannahme per Mail (Mailcow-Postfach abholen) — dafuer muss `de.raindancer118:mailcow-client-java`
       erst nach packages.tstieh.de deployt werden; aktuell liegt es nur lokal in `~/.m2`
 - [ ] OCR-Stufe für gescannte Belege (Port `PdfTextSource` steht bereit)
 - [ ] Astro-Frontend gegen `/api/v1`
-- [ ] Persistenz der Prüfvorgänge (aktuell im Speicher, Port `ReviewRepository` steht bereit)
+- [ ] Persistenz der Prüfvorgänge und Belegbilder (aktuell im Speicher, Ports
+      `ReviewRepository` und `DocumentStore` stehen bereit)
+- [ ] Direkte Übertragung an DATEV Unternehmen online (aktuell wird das Paket zum Download
+      erzeugt; für den Upload sind Zugangsdaten und der DATEV-Client nötig)

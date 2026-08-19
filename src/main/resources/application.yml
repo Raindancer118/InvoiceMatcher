@@ -103,6 +103,16 @@ invoicematcher:
       - { konto: 10101, name: "Erwin Laubangermuster",        direction: AUSGANG }
       - { konto: 10102, name: "Christiane Beispielrückers",   direction: AUSGANG }
 
+  datev:
+    # Angaben fuer das DATEV Document-Package (XML-Schnittstelle online, Version 6.0).
+    generating-system: "InvoiceMatcher"
+    consultant-number: ""
+    client-number: ""
+    client-name: ""
+    incoming-folder: "Eingangsrechnungen"
+    outgoing-folder: "Ausgangsrechnungen"
+    xml-data-notice: "Kopie nur zur Verbuchung berechtigt nicht zum Vorsteuerabzug"
+
   api:
     # Herkunft des Astro-Frontends im Entwicklungsbetrieb.
     cors-allowed-origins:
