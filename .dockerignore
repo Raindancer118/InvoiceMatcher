@@ -1,0 +1,9 @@
+target/
+.git/
+.github/
+.idea/
+*.iml
+Für Toms/
+*.docx
+.vault-project*
+Project.md

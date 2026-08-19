@@ -1,0 +1,7 @@
+{
+  "id": "986f4166-77c0-4a93-9d2f-2b9730bc03c1",
+  "name": "InvoiceMatcher",
+  "createdAt": "2026-08-12T13:52:28.855Z",
+  "storage": "committed",
+  "totpEnabled": true
+}

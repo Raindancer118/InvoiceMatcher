@@ -1,0 +1,118 @@
+spring:
+  application:
+    name: InvoiceMatcher
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 40MB
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  level:
+    de.pegasus.invoicematcher: INFO
+
+invoicematcher:
+
+  # Das eigene Unternehmen - daraus leitet sich die Belegrichtung ab.
+  company:
+    name: "Muster zu Testzwecken GmbH"
+    vat-id: "DE 815000010"
+    tax-number: "24112345678"
+
+  accounting:
+    # Nettoeinzelpreis, ab dem eine Anlagenposition nicht mehr automatisch kontiert wird.
+    gwg-limit: 800.00
+    # Zulaessige Differenz der Rechenprobe Netto + Steuer = Brutto.
+    rounding-tolerance: 0.01
+
+    # Ausgangsrechnungen werden nur nach Steuersatz aufgeteilt.
+    revenue:
+      - { vat-rate: 19, account: 8400, automatic: true }
+      - { vat-rate: 7,  account: 8300, automatic: true }
+
+    # Sammelkonten, wenn der Positionstext auf keine Warengruppe passt.
+    default-expense:
+      - { vat-rate: 19, account: 3400, automatic: true }
+      - { vat-rate: 7,  account: 3300, automatic: true }
+
+    # Warengruppen. Bei mehreren Treffern gewinnt das laengste Stichwort.
+    categories:
+      - label: "Furniere/Kanten"
+        account: 3401
+        automatic: false
+        keywords: [furnier, kante, umleimer, anleimer]
+      - label: "Massiv- und Schnittholz"
+        account: 3402
+        automatic: false
+        keywords: [kantholz, latte, brett, bohle, balken, leiste, diele, schnittholz, massivholz, rundholz]
+      - label: "Plattenwerkstoffe"
+        account: 3403
+        automatic: false
+        keywords: [platte, arbeitsplatte, tischlerplatte, pressholz, spanplatte, mdf, hdf, osb, sperrholz, leimholz]
+      - label: "Lacke und Beschichtung"
+        account: 3404
+        automatic: false
+        keywords: [lack, klarlack, lasur, farbe, farbtube, beize, grundierung, holzschutz, holzoel, hartoel, leinoel]
+      - label: "Kfz-Betriebsstoffe"
+        account: 4530
+        automatic: false
+        keywords: [diesel, benzin, e10, kraftstoff, adblue, motoroel, schmierstoff]
+      - label: "Fachliteratur"
+        account: 4940
+        automatic: false
+        keywords: [fachbuch, fachliteratur, zeitschrift, abonnement, buch]
+      - label: "Buerobedarf"
+        account: 4930
+        automatic: false
+        keywords: [buerobedarf, papier, toner, ordner, kopiergeraet, kopierer, drucker, kugelschreiber, briefumschlag]
+
+    # Hinweise auf Anlagevermoegen. Nur zusammen mit der GWG-Grenze relevant.
+    fixed-asset-keywords:
+      [geraet, maschine, kopierer, drucker, computer, notebook, laptop, server, monitor,
+       fahrzeug, anhaenger, stapler, werkbank, hebebuehne, kompressor, absauganlage,
+       kreissaege, hobelmaschine, fraese, cnc]
+
+  partners:
+    # Sammelkonten je Anfangsbuchstabe, strikt getrennt vom Nummernkreis echter Partner.
+    diverse:
+      creditor-start: 70001
+      debitor-start: 10001
+    # Optionaler DTVF-Export; ist er gesetzt, ergaenzt er die untenstehende Liste.
+    dtvf-file: ""
+    known:
+      - { konto: 70101, name: "Friedrich Klausmuster",        direction: EINGANG, vat-id: "DE 404131066", tax-number: "156/290/44989" }
+      - { konto: 70102, name: "Sägewerk Kumpfmühle Test",     direction: EINGANG, vat-id: "DE 815000093", tax-number: "241/116/31421" }
+      - { konto: 70103, name: "Jochen Redloffbeispiel",       direction: EINGANG, vat-id: "DE 433176775", tax-number: "102 161 12739" }
+      - { konto: 70104, name: "Farben-Fritzebeispiel",        direction: EINGANG, vat-id: "DE 799875869", tax-number: "238/815/50725" }
+      - { konto: 70105, name: "Bürobedarf Test",              direction: EINGANG, vat-id: "DE 671419214", tax-number: "202/152/66266" }
+      - { konto: 70106, name: "Mustertankstelle Schmidt",     direction: EINGANG, vat-id: "DE 583708478", tax-number: "238/815/37524" }
+      - { konto: 70107, name: "Sägewerk Testtanne",           direction: EINGANG, vat-id: "DE 563953914", tax-number: "156/290/96016" }
+      - { konto: 70108, name: "Unkastester & Hübnerbeispiel", direction: EINGANG, vat-id: "DE 137416438", tax-number: "181/815/57016" }
+      - { konto: 10101, name: "Erwin Laubangermuster",        direction: AUSGANG }
+      - { konto: 10102, name: "Christiane Beispielrückers",   direction: AUSGANG }
+
+  api:
+    # Herkunft des Astro-Frontends im Entwicklungsbetrieb.
+    cors-allowed-origins:
+      - "http://localhost:4321"
+      - "http://127.0.0.1:4321"
+
+  review:
+    # Ab diesem Konfidenzwert laeuft ein Beleg ohne menschliche Pruefung durch.
+    auto-approve-threshold: 0.85
+    notification:
+      enabled: false
+      from: "invoicematcher@volantic.de"
+      to: "buchhaltung@volantic.de"
