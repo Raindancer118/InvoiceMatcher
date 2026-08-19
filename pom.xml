@@ -73,13 +73,6 @@
             <version>${opencsv.version}</version>
         </dependency>
 
-        <!-- Mailcow-Anbindung fuer die Review-Mailbox -->
-        <dependency>
-            <groupId>de.raindancer118</groupId>
-            <artifactId>mailcow-client-java</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

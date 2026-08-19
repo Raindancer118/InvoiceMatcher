@@ -18,7 +18,8 @@
 
 ## Offen
 - [ ] Übersetzung des internen JSON in die DATEV-XML-Schnittstelle online
-- [ ] Belegannahme per Mail (Mailcow-Postfach abholen)
+- [ ] Belegannahme per Mail (Mailcow-Postfach abholen) — dafuer muss `de.raindancer118:mailcow-client-java`
+      erst nach packages.tstieh.de deployt werden; aktuell liegt es nur lokal in `~/.m2`
 - [ ] OCR-Stufe für gescannte Belege (Port `PdfTextSource` steht bereit)
 - [ ] Astro-Frontend gegen `/api/v1`
 - [ ] Persistenz der Prüfvorgänge (aktuell im Speicher, Port `ReviewRepository` steht bereit)
