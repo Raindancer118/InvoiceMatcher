@@ -16,6 +16,8 @@ menschliche Prüfung statt direkt in die Buchhaltung.
 - **Pflichtprüfungen** — §14-UStG-Angaben, Rechenprobe Netto + Steuer = Brutto, GWG-Grenze.
 - **Human-in-the-Loop** — Prüfliste mit Freigabe, Korrektur und Ablehnung; optional
   Mailbenachrichtigung.
+- **Persistenz** — Prüfvorgänge und Belegbilder liegen in einer SQLite-Datei und überstehen
+  einen Neustart. Kein Datenbankserver nötig, die Ablage ist eine Datei zum Sichern.
 - **DATEV-Übergabe** — erzeugt ein DATEV Document-Package (XML-Schnittstelle online, Version
   6.0): Belegbild, Belegsatzdaten und `document.xml` in einem ZIP. Ob ein Buchungssatz entsteht
   oder der Beleg nur abgelegt wird, steuert genau wie vorgesehen das Beiliegen der
@@ -75,6 +77,20 @@ curl -F "datei=@rechnung.pdf" http://localhost:8080/api/v1/belege/klassifikation
 
 `ergebnis` ist das interne DATEV-Zwischenformat und bleibt unverändert; `quelle` und `hinweise`
 sind Kontext für die Prüfoberfläche.
+
+## Ablage
+
+Prüfvorgänge und die Original-Belegbilder liegen in einer SQLite-Datei, standardmäßig unter
+`./data/invoicematcher.db`. Der Pfad lässt sich über `INVOICEMATCHER_DB` setzen; im Container
+liegt die Datei im Volume `/data`.
+
+```bash
+INVOICEMATCHER_DB=/var/lib/invoicematcher/db.sqlite mvn spring-boot:run
+```
+
+Das Verzeichnis legt die Anwendung bei Bedarf selbst an. Für den Wechsel auf eine
+Server-Datenbank sind `ReviewRepository` und `DocumentStore` die einzigen zu ersetzenden
+Bausteine.
 
 ## Konfiguration
 

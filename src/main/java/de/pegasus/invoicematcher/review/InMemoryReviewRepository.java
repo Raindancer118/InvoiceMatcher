@@ -1,15 +1,17 @@
 package de.pegasus.invoicematcher.review;
 
-import org.springframework.stereotype.Repository;
-
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Speicherbasierte Ablage - ausreichend fuer den Prototyp, austauschbar ueber den Port. */
-@Repository
+/**
+ * Speicherbasierte Ablage.
+ *
+ * <p>Bewusst keine Spring-Bean: produktiv laeuft die SQLite-Ablage, diese Fassung dient den
+ * Modultests, die ohne Datei und ohne Anwendungskontext auskommen sollen.
+ */
 public class InMemoryReviewRepository implements ReviewRepository {
 
     private final Map<String, ReviewCase> cases = new ConcurrentHashMap<>();

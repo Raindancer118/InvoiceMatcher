@@ -110,6 +110,20 @@ public class ReviewService {
                 correction.buchungszeilen() != null ? correction.buchungszeilen() : original.buchungszeilen(),
                 original.buchungstextKopf(),
                 original.konfidenzScore());
+        requireBookingLines(corrected);
         return new ClassificationReport(report.filename(), report.source(), corrected, report.findings());
+    }
+
+    /**
+     * Ein Beleg, den die Pruefung als buchbar einstuft, braucht auch Buchungszeilen.
+     *
+     * <p>Ohne diese Pruefung liefe er als reine Ablage nach DATEV: der Pruefer haette den
+     * Belegtyp korrigiert, die Buchung waere aber stillschweigend unterblieben.
+     */
+    private void requireBookingLines(ClassificationResult corrected) {
+        if (corrected.documentType().carriesBookingData() && corrected.buchungszeilen().isEmpty()) {
+            throw new ReviewStateException("Belegtyp '" + corrected.documentType().label()
+                    + "' erwartet einen Buchungssatz, es wurden aber keine Buchungszeilen uebergeben");
+        }
     }
 }

@@ -1,19 +1,16 @@
 package de.pegasus.invoicematcher.export;
 
 import de.pegasus.invoicematcher.extraction.SourceDocument;
-import org.springframework.stereotype.Component;
-
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Speicherbasierte Belegablage fuer den Prototyp.
+ * Speicherbasierte Belegablage.
  *
- * <p>Produktiv gehoert hier ein Objektspeicher oder ein revisionssicheres Archiv hinter -
- * der Port bleibt derselbe.
+ * <p>Bewusst keine Spring-Bean: produktiv laeuft die SQLite-Ablage, diese Fassung dient den
+ * Modultests.
  */
-@Component
 public class InMemoryDocumentStore implements DocumentStore {
 
     private final Map<String, SourceDocument> documents = new ConcurrentHashMap<>();

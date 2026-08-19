@@ -7,7 +7,12 @@ import de.pegasus.invoicematcher.extraction.ExtractionService;
 import de.pegasus.invoicematcher.config.CompanyProperties;
 import de.pegasus.invoicematcher.config.DatevExportProperties;
 import de.pegasus.invoicematcher.export.DatevExportService;
+import de.pegasus.invoicematcher.export.DocumentStore;
 import de.pegasus.invoicematcher.export.InMemoryDocumentStore;
+import de.pegasus.invoicematcher.persistence.ReportSerializer;
+import de.pegasus.invoicematcher.persistence.SqliteDocumentStore;
+import de.pegasus.invoicematcher.persistence.SqliteReviewRepository;
+import de.pegasus.invoicematcher.review.ReviewRepository;
 import de.pegasus.invoicematcher.export.datev.DocumentXmlWriter;
 import de.pegasus.invoicematcher.export.datev.LedgerXmlWriter;
 import de.pegasus.invoicematcher.export.datev.VatRateResolver;
@@ -128,6 +133,39 @@ public final class Kontierung {
                 documents);
         return new Workflow(review, new DatevExportService(review, documents,
                 standardDocumentXmlWriter(), standardLedgerXmlWriter()));
+    }
+
+    /**
+     * Derselbe Ablauf, aber mit der SQLite-Ablage - fuer Tests, die einen Neustart nachstellen.
+     * {@link Persistence#close()} gibt die Datei wieder frei.
+     */
+    public record Persistence(ReviewService review, DatevExportService export,
+                              ReviewRepository repository, DocumentStore documents,
+                              com.zaxxer.hikari.HikariDataSource dataSource) implements AutoCloseable {
+
+        @Override
+        public void close() {
+            dataSource.close();
+        }
+    }
+
+    public static Persistence sqlitePersistence(java.nio.file.Path databaseFile) {
+        com.zaxxer.hikari.HikariDataSource dataSource = new com.zaxxer.hikari.HikariDataSource();
+        dataSource.setJdbcUrl("jdbc:sqlite:" + databaseFile);
+        dataSource.setDriverClassName("org.sqlite.JDBC");
+        dataSource.setMaximumPoolSize(1);
+        new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(
+                new org.springframework.core.io.ClassPathResource("schema.sql")).execute(dataSource);
+
+        var jdbc = org.springframework.jdbc.core.simple.JdbcClient.create(dataSource);
+        var serializer = new ReportSerializer();
+        ReviewRepository repository = new SqliteReviewRepository(jdbc, serializer);
+        DocumentStore documents = new SqliteDocumentStore(jdbc);
+        ReviewService review = new ReviewService(standardClassificationService(), repository,
+                new ReviewProperties(new java.math.BigDecimal("0.85"), null), reviewCase -> { }, documents);
+        DatevExportService export = new DatevExportService(review, documents,
+                standardDocumentXmlWriter(), standardLedgerXmlWriter());
+        return new Persistence(review, export, repository, documents, dataSource);
     }
 
     private static <T> T bind(String prefix, Class<T> type) {

@@ -3,6 +3,7 @@ package de.pegasus.invoicematcher.review;
 import de.pegasus.invoicematcher.classification.ClassificationReport;
 import de.pegasus.invoicematcher.classification.ClassificationService;
 import de.pegasus.invoicematcher.config.ReviewProperties;
+import de.pegasus.invoicematcher.domain.BookingLine;
 import de.pegasus.invoicematcher.domain.DocumentType;
 import de.pegasus.invoicematcher.export.InMemoryDocumentStore;
 import de.pegasus.invoicematcher.support.Belege;
@@ -74,12 +75,34 @@ class ReviewServiceTest {
     @Test
     void approvingCanReplaceTheProposedResultWithACorrectedOne() {
         ReviewCase open = service.submit(Belege.document("05_PDF_Buerobedarf_Kopierer.pdf"));
-        var corrected = open.report().result();
+        List<BookingLine> nachkontiert = List.of(new BookingLine(4930, BookingLine.SOLL, 9,
+                new BigDecimal("899.99"), "Digitalkopiergeraet HS-1233"));
 
         ReviewCase approved = service.approve(open.id(), "tom",
-                new ReviewDecision.Correction(DocumentType.RECHNUNGSEINGANG, corrected.buchungszeilen()));
+                new ReviewDecision.Correction(DocumentType.RECHNUNGSEINGANG, nachkontiert));
 
         assertThat(approved.report().result().documentType()).isEqualTo(DocumentType.RECHNUNGSEINGANG);
+        assertThat(approved.report().result().buchungszeilen()).isEqualTo(nachkontiert);
+    }
+
+    @Test
+    void aBookableDocumentTypeWithoutBookingLinesIsRefusedInsteadOfSilentlyStayingUnbooked() {
+        ReviewCase open = service.submit(Belege.document("05_PDF_Buerobedarf_Kopierer.pdf"));
+
+        assertThatThrownBy(() -> service.approve(open.id(), "tom",
+                new ReviewDecision.Correction(DocumentType.RECHNUNGSEINGANG, null)))
+                .isInstanceOf(ReviewStateException.class)
+                .hasMessageContaining("keine Buchungszeilen");
+    }
+
+    @Test
+    void aDocumentTypeWithoutBookingDataMayKeepEmptyBookingLines() {
+        ReviewCase open = service.submit(Belege.document("05_PDF_Buerobedarf_Kopierer.pdf"));
+
+        ReviewCase approved = service.approve(open.id(), "tom",
+                new ReviewDecision.Correction(DocumentType.SONSTIGE, null));
+
+        assertThat(approved.report().result().documentType()).isEqualTo(DocumentType.SONSTIGE);
     }
 
     @Test

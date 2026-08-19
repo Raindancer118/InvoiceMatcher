@@ -30,6 +30,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("Beleg-API")
 class BelegApiIntegrationTest {
 
+    /** Eigene Ablage je Testlauf, damit der Test nichts im Arbeitsverzeichnis hinterlaesst. */
+    @org.junit.jupiter.api.io.TempDir
+    static java.nio.file.Path ablage;
+
+    @org.springframework.test.context.DynamicPropertySource
+    static void ablageEinrichten(org.springframework.test.context.DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", () -> "jdbc:sqlite:" + ablage.resolve("test.db"));
+    }
+
     private final MockMvc mockMvc;
 
     @Autowired
@@ -68,12 +77,34 @@ class BelegApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id == '" + id + "')]").exists());
 
+        // Ein buchbarer Belegtyp ohne Buchungszeilen wird abgelehnt - sonst bliebe der Beleg
+        // stillschweigend ungebucht.
         mockMvc.perform(post("/api/v1/pruefungen/" + id + "/freigabe")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"benutzer\":\"tom\",\"belegtyp\":\"Rechnungseingang\"}"))
+                .andExpect(status().isConflict());
+
+        mockMvc.perform(post("/api/v1/pruefungen/" + id + "/freigabe")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "benutzer": "tom",
+                                  "belegtyp": "Rechnungseingang",
+                                  "buchungszeilen": [
+                                    {
+                                      "sachkonto": 4930,
+                                      "soll_haben_kennzeichen": "S",
+                                      "steuerschluessel": 9,
+                                      "umsatz": 899.99,
+                                      "buchungstext": "Digitalkopiergeraet HS-1233"
+                                    }
+                                  ]
+                                }
+                                """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("FREIGEGEBEN"))
-                .andExpect(jsonPath("$.ergebnis.document_type").value("Rechnungseingang"));
+                .andExpect(jsonPath("$.ergebnis.document_type").value("Rechnungseingang"))
+                .andExpect(jsonPath("$.ergebnis.buchungszeilen[0].sachkonto").value(4930));
     }
 
     @Test

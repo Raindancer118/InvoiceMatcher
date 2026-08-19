@@ -41,5 +41,11 @@ build/
 /Für Toms/
 /Master_AI_Business_Canvas.docx
 
+### Laufzeitablage (SQLite)
+/data/
+*.db
+*.db-journal
+*.db-wal
+
 ### Projektinterne Doku (nicht committen)
 /Project.md

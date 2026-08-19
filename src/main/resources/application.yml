@@ -1,6 +1,19 @@
 spring:
   application:
     name: InvoiceMatcher
+
+  datasource:
+    # Serverlose Ablage: eine Datei, die sich sichern und weitergeben laesst.
+    url: "jdbc:sqlite:${INVOICEMATCHER_DB:./data/invoicematcher.db}"
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      # SQLite laesst nur einen Schreiber zu. Ein Verbindung serialisiert die Zugriffe und
+      # macht SQLITE_BUSY unmoeglich - bei der Belegmenge eines Prototyps unkritisch.
+      maximum-pool-size: 1
+
+  sql:
+    init:
+      mode: always
   servlet:
     multipart:
       max-file-size: 20MB

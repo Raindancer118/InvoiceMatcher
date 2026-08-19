@@ -18,12 +18,17 @@ WORKDIR /app
 # Kein Root im Container.
 RUN groupadd --system invoicematcher \
  && useradd --system --gid invoicematcher --home /app invoicematcher
+# Die Ablage liegt in einem eigenen Verzeichnis, damit sie als Volume ueberlebt.
+RUN mkdir -p /data && chown invoicematcher:invoicematcher /data
 USER invoicematcher
 
 COPY --from=build --chown=invoicematcher:invoicematcher /build/target/InvoiceMatcher-*.jar /app/app.jar
 
+VOLUME ["/data"]
+
 EXPOSE 8080
-ENV JAVA_OPTS="-XX:MaxRAMPercentage=75"
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=75" \
+    INVOICEMATCHER_DB="/data/invoicematcher.db"
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
     CMD ["java", "-version"]
