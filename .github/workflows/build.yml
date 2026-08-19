@@ -51,13 +51,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Registry-Namen muessen kleingeschrieben sein, Repository-Namen sind es nicht zwingend.
+      - name: Imagenamen bestimmen
+        id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
       - name: Image bauen und veroeffentlichen
         uses: docker/build-push-action@v6
         with:
           context: .
           push: ${{ github.event_name == 'push' }}
           tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ${{ steps.image.outputs.name }}:latest
+            ${{ steps.image.outputs.name }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
