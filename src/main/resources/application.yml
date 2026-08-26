@@ -44,11 +44,20 @@ invoicematcher:
     vat-id: "DE 815000010"
     tax-number: "24112345678"
 
+  # Absicherung der API gegen Authentik (portal.tstieh.de).
+  # Ohne issuer-uri laeuft die Anwendung OHNE Anmeldung - nur fuer lokale Entwicklung.
+  security:
+    issuer-uri: ${INVOICEMATCHER_OIDC_ISSUER:}
+    required-group: ${INVOICEMATCHER_OIDC_GROUP:InvoiceMatcher}
+    groups-claim: groups
+
   # Zeichenerkennung fuer gescannte Belege ohne Textebene. Setzt das Systemwerkzeug
   # 'tesseract' samt Sprachdaten voraus; fehlt es, gehen solche Belege zur Pruefung.
   ocr:
     enabled: ${INVOICEMATCHER_OCR_ENABLED:true}
     command: ${INVOICEMATCHER_OCR_COMMAND:tesseract}
+    # deu+eng, nicht deu allein: mit nur deutschen Sprachdaten verliest das Modell fett
+    # gesetzte Ueberschriften ("Rechnung"), und der Beleg faellt in den Belegtyp "Sonstige".
     language: ${INVOICEMATCHER_OCR_LANGUAGE:deu+eng}
     # Leer: die Sprachdaten liegen dort, wo Tesseract sie selbst sucht.
     tessdata-dir: ${INVOICEMATCHER_OCR_TESSDATA_DIR:}

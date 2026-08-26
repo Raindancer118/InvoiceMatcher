@@ -50,6 +50,7 @@ docker compose up --build # als Container
 | `POST` | `/api/v1/belege/stapel` | mehrere Belege auf einmal |
 | `GET`  | `/api/v1/pruefungen` | offene Prüfvorgänge (`?alle=true` für alle) |
 | `GET`  | `/api/v1/pruefungen/{id}` | einzelner Vorgang |
+| `GET`  | `/api/v1/pruefungen/{id}/beleg` | Originalbeleg zur Anzeige (`inline`) |
 | `POST` | `/api/v1/pruefungen/{id}/freigabe` | freigeben, optional mit Korrektur |
 | `POST` | `/api/v1/pruefungen/{id}/ablehnung` | ablehnen, mit Begründung |
 | `GET`  | `/api/v1/export/offen` | freigegebene, noch nicht übergebene Belege |
@@ -87,6 +88,19 @@ curl -F "datei=@rechnung.pdf" http://localhost:8080/api/v1/belege/klassifikation
 
 `ergebnis` ist das interne DATEV-Zwischenformat und bleibt unverändert; `quelle` und `hinweise`
 sind Kontext für die Prüfoberfläche.
+
+## Anmeldung
+
+Die API hängt hinter Authentik (`portal.tstieh.de`). Jeder Aufruf braucht ein Zugriffstoken,
+und das Konto muss in der Gruppe `InvoiceMatcher` sein.
+
+| Variable | Vorgabe | Zweck |
+|---|---|---|
+| `INVOICEMATCHER_OIDC_ISSUER` | — | Herausgeber, z. B. `https://portal.tstieh.de/application/o/invoicematcher/` |
+| `INVOICEMATCHER_OIDC_GROUP` | `InvoiceMatcher` | verlangte Gruppe; leer lässt jedes gültige Token zu |
+
+Ohne gesetzten Herausgeber läuft die Anwendung ohne Anmeldung und sagt das beim Start als
+Warnung. Für die lokale Entwicklung ist das gewollt, für den Betrieb nicht.
 
 ## Ablage
 

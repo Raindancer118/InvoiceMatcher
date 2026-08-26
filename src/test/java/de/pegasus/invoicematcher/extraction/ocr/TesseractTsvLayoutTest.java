@@ -62,13 +62,15 @@ class TesseractTsvLayoutTest {
     }
 
     @Test
-    void keepsAnUncertainAmountBecauseADroppedOneCostsAWholeInvoiceLine() {
+    void keepsAnAmountReportedWithoutAnyConfidenceBecauseDroppingItCostsAWholeInvoiceLine() {
+        // Gemessener Fall: ein Einzelpreis an einer Tabellenlinie wird richtig gelesen und
+        // mit Sicherheit 0,0 gemeldet.
         String tsv = String.join("\n",
                 HEADER,
                 word(1, 100, 100, 90, 95, "Meter"),
-                word(1, 400, 100, 60, 19, "0,77€"));
+                word(1, 400, 100, 60, 0, "0,77"));
 
-        assertThat(TesseractTsvLayout.toText(tsv)).contains("0,77€");
+        assertThat(TesseractTsvLayout.toText(tsv)).contains("0,77");
     }
 
     @Test

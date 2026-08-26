@@ -22,10 +22,13 @@
 - [x] OCR-Stufe fuer gescannte Belege (Tesseract), layouterhaltend ueber die Wortrahmen -
       ein Scan wird identisch kontiert wie das Original und geht zur Pruefung
 
+- [x] Belegbild zum Pruefvorgang ueber die API abrufbar (`GET /api/v1/pruefungen/{id}/beleg`)
+- [x] API gegen Authentik abgesichert (JWT, Gruppenzwang, Healthcheck bleibt frei)
+
 ## Offen
 - [ ] Belegannahme per Mail (Mailcow-Postfach abholen) — dafuer muss `de.raindancer118:mailcow-client-java`
       erst nach packages.tstieh.de deployt werden; aktuell liegt es nur lokal in `~/.m2`
-- [ ] Astro-Frontend gegen `/api/v1`
+- [ ] Astro-Frontend gegen `/api/v1` (Design steht, siehe `Design.md`)
 - [ ] Wechsel auf eine Server-Datenbank samt Migrationswerkzeug, sobald mehrere Mandanten
       oder parallele Schreiber dazukommen (Ports `ReviewRepository` und `DocumentStore`
       bleiben unverändert)

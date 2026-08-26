@@ -52,6 +52,19 @@ public class ReviewService {
         return reviewCase;
     }
 
+    /**
+     * Das Original zu einem Vorgang.
+     *
+     * <p>Wer prueft, vergleicht den Vorschlag mit dem Beleg - ohne das Belegbild ist die
+     * Pruefliste eine Liste von Behauptungen. Fehlt das Bild, ist der Vorgang unbekannt und
+     * nicht etwa leer: ein Vorgang ohne sein Original duerfte es gar nicht geben.
+     */
+    public SourceDocument document(String id) {
+        find(id);
+        return documents.load(id)
+                .orElseThrow(() -> new ReviewNotFoundException("Zu Vorgang " + id + " liegt kein Beleg vor"));
+    }
+
     public List<ReviewCase> openCases() {
         return repository.findByStatus(ReviewStatus.OFFEN);
     }

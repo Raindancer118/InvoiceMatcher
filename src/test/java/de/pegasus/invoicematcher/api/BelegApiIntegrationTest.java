@@ -66,6 +66,30 @@ class BelegApiIntegrationTest {
     }
 
     @Test
+    void deliversTheOriginalDocumentSoTheReviewerCanCompareItWithTheProposal() throws Exception {
+        String id = com.jayway.jsonpath.JsonPath.read(
+                mockMvc.perform(multipart("/api/v1/belege").file(upload("05_PDF_Buerobedarf_Kopierer.pdf")))
+                        .andExpect(status().isCreated())
+                        .andReturn().getResponse().getContentAsString(), "$.id");
+
+        byte[] ausgeliefert = mockMvc.perform(get("/api/v1/pruefungen/" + id + "/beleg"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", MediaType.APPLICATION_PDF_VALUE))
+                // inline, nicht attachment: das Belegbild wird im Pruefblick angezeigt, nicht geladen
+                .andExpect(header().string("Content-Disposition",
+                        org.hamcrest.Matchers.startsWith("inline")))
+                .andReturn().getResponse().getContentAsByteArray();
+
+        assertThat(ausgeliefert).isEqualTo(Belege.bytes("05_PDF_Buerobedarf_Kopierer.pdf"));
+    }
+
+    @Test
+    void reportsAnUnknownCaseInsteadOfAnEmptyDocument() throws Exception {
+        mockMvc.perform(get("/api/v1/pruefungen/gibtesnicht/beleg"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void submittingAFlaggedDocumentOpensAReviewCaseThatCanThenBeApproved() throws Exception {
         String id = com.jayway.jsonpath.JsonPath.read(
                 mockMvc.perform(multipart("/api/v1/belege").file(upload("05_PDF_Buerobedarf_Kopierer.pdf")))

@@ -21,15 +21,15 @@ import java.util.regex.Pattern;
 public final class TesseractTsvLayout {
 
     /**
-     * Unterhalb dieser Sicherheit ist ein Wort eher Bildrauschen als Text - bewusst niedrig
-     * angesetzt: ein Betrag, der an einer Tabellenlinie klebt, wird richtig gelesen, aber mit
-     * einer Sicherheit um 20 gemeldet. Ihn zu verwerfen kostet eine ganze Belegposition.
-     */
-    private static final double MIN_CONFIDENCE = 10.0;
-
-    /**
-     * Einzelne Zeichen sind die Ausnahme: Staub, Lochung und Linienreste erscheinen fast immer
-     * als ein Zeichen, ein mehrstelliges Wort dagegen praktisch nie zufaellig.
+     * Nur einzelne Zeichen werden nach ihrer Sicherheit gefiltert.
+     *
+     * <p>Fuer mehrstellige Woerter taugt der Wert nicht: der Einzelpreis "0,77" einer
+     * Belegposition wird richtig gelesen und mit Sicherheit 0,0 gemeldet, weil die senkrechte
+     * Tabellenlinie daran klebt. Eine Schwelle, die so etwas verwirft, kostet eine ganze
+     * Belegposition - und damit die Sachkontierung, die daran haengt.
+     *
+     * <p>Einzelne Zeichen sind der umgekehrte Fall: Staub, Lochung und Linienreste erscheinen
+     * fast immer als ein Zeichen, ein mehrstelliges Wort dagegen praktisch nie zufaellig.
      */
     private static final double MIN_CONFIDENCE_SINGLE_CHARACTER = 50.0;
 
@@ -80,8 +80,8 @@ public final class TesseractTsvLayout {
                 continue;
             }
             try {
-                double required = text.length() > 1 ? MIN_CONFIDENCE : MIN_CONFIDENCE_SINGLE_CHARACTER;
-                if (Double.parseDouble(cells[10]) < required) {
+                double confidence = Double.parseDouble(cells[10]);
+                if (text.length() == 1 && confidence < MIN_CONFIDENCE_SINGLE_CHARACTER) {
                     continue;
                 }
                 words.add(new Word(Integer.parseInt(cells[6]), Integer.parseInt(cells[7]),

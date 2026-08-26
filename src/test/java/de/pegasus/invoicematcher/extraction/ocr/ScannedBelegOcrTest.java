@@ -32,12 +32,21 @@ class ScannedBelegOcrTest {
 
     private static final int SCAN_DPI = 300;
 
+    /**
+     * Dieselbe Sprachwahl wie im Betrieb. Mit {@code deu} allein verliest das Systemmodell die
+     * fett gesetzte Ueberschrift eines Belegs ("Rechnung" wurde zu "RGCh\u201cU\"Q"), und der
+     * Beleg landete als "Sonstige" statt als Rechnungseingang. Die zweite Sprache ist hier
+     * keine Zugabe, sondern haelt die Titelerkennung stabil.
+     */
+    private static final String SPRACHEN = "deu+eng";
+
     static boolean germanRecognizerInstalled() {
+        // isAvailable() prueft beide Sprachen einzeln - fehlt eine, laeuft der Test nicht an.
         return recognizer().isAvailable();
     }
 
     private static TesseractCliRecognizer recognizer() {
-        return new TesseractCliRecognizer("tesseract", "deu", System.getenv("TESSDATA_PREFIX"),
+        return new TesseractCliRecognizer("tesseract", SPRACHEN, System.getenv("TESSDATA_PREFIX"),
                 3, SCAN_DPI, Duration.ofSeconds(120));
     }
 
