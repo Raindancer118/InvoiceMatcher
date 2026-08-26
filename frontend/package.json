@@ -1,0 +1,24 @@
+{
+  "name": "invoicematcher-frontend",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Pruefoberflaeche fuer InvoiceMatcher",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/node": "^11.1.4",
+    "astro": "^7.2.7",
+    "jose": "^6.2.10",
+    "openid-client": "^6.8.7"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@types/node": "^26.3.0",
+    "typescript": "^5.9.2"
+  }
+}

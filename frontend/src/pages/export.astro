@@ -1,0 +1,42 @@
+---
+import Grundgeruest from '../layouts/Grundgeruest.astro';
+import Vorgangstabelle from '../components/Vorgangstabelle.astro';
+import { api } from '../lib/api';
+import { betrag } from '../lib/darstellung';
+
+const { sitzung } = Astro.locals;
+const offen = await api.exportierbare(sitzung.accessToken);
+const meldung = Astro.url.searchParams.get('meldung');
+const summe = offen.reduce((s, v) => s + (v.quelle.brutto ?? 0), 0);
+---
+<Grundgeruest titel="Export" benutzer={sitzung.benutzer.name} aktiv="export">
+  <div class="abschnitt">
+    <h2>Übergabe an DATEV</h2>
+  </div>
+
+  {meldung && <p class="meldung">{meldung}</p>}
+
+  <p class="sub" style="max-width:52ch">
+    Freigegebene Belege, die noch nicht gebucht wurden. Das Paket enthält Belegbild,
+    Belegsatzdaten und <code>document.xml</code>. Jeder übergebene Vorgang wird vermerkt und
+    kann nicht ein zweites Mal in ein Paket geraten.
+  </p>
+
+  {offen.length > 0 && (
+    <p class="zahlenzeile">
+      <b class="num">{offen.length}</b> {offen.length === 1 ? 'Beleg' : 'Belege'}
+      <span class="trenner">·</span>
+      <b class="num">{betrag(summe)}</b> brutto
+    </p>
+  )}
+
+  <div style="margin:1.5rem 0">
+    <form method="post" action="/export/datev">
+      <button class="btn btn-primary" type="submit" disabled={offen.length === 0}>
+        Paket erzeugen und herunterladen
+      </button>
+    </form>
+  </div>
+
+  <Vorgangstabelle vorgaenge={offen} leerText="Nichts zur Übergabe bereit." />
+</Grundgeruest>

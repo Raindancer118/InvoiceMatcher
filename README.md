@@ -28,6 +28,19 @@ menschliche Prüfung statt direkt in die Buchhaltung.
   oder der Beleg nur abgelegt wird, steuert genau wie vorgesehen das Beiliegen der
   Belegsatzdatendatei. Übergebene Vorgänge werden vermerkt und nicht ein zweites Mal gebucht.
 
+## Oberfläche
+
+Die Prüfoberfläche liegt unter `frontend/` (Astro, serverseitig gerendert) und meldet sich bei
+Authentik an. Gestaltung und die Entscheidungen dahinter stehen in `Design.md`, der freigegebene
+Prototyp unter `frontend/prototyp/index.html`.
+
+```bash
+docker compose up --build   # API auf 8080, Oberfläche auf 4321
+```
+
+Die Oberfläche braucht dafür die OIDC-Werte in einer `.env` neben `compose.yaml`
+(siehe `frontend/.env.example`).
+
 ## Schnellstart
 
 Für gescannte Belege wird Tesseract samt deutschen Sprachdaten gebraucht

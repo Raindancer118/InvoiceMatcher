@@ -1,0 +1,73 @@
+---
+import type { Vorgang } from '../lib/api';
+import {
+  anzeigezustand, betrag, datum, FORMAT_TEXT, konfidenzKlasse, ZUSTAND_KLASSE, ZUSTAND_TEXT,
+} from '../lib/darstellung';
+
+interface Props {
+  vorgaenge: Vorgang[];
+  /** Ohne Treffer steht hier, was der Prüfer stattdessen liest. */
+  leerText?: string;
+}
+
+const { vorgaenge, leerText = 'Nichts zu tun.' } = Astro.props;
+---
+{vorgaenge.length === 0 ? (
+  <p class="leer">{leerText}</p>
+) : (
+  <table class="tabelle">
+    <thead>
+      <tr>
+        <th>Zustand</th>
+        <th>Datum</th>
+        <th>Geschäftspartner</th>
+        <th>Beleg-Nr.</th>
+        <th>Format</th>
+        <th>Konfidenz</th>
+        <th class="r">Betrag</th>
+      </tr>
+    </thead>
+    <tbody>
+      {vorgaenge.map((vorgang) => {
+        const zustand = anzeigezustand(vorgang);
+        const konfidenz = vorgang.ergebnis.konfidenz_score;
+        return (
+          <tr onclick={`location.href='/vorgang/${vorgang.id}'`}>
+            <td>
+              <a class={'zustand ' + ZUSTAND_KLASSE[zustand]} href={`/vorgang/${vorgang.id}`}>
+                {ZUSTAND_TEXT[zustand]}
+              </a>
+            </td>
+            <td class="num">{datum(vorgang.quelle.rechnungsdatum)}</td>
+            <td>
+              <span class="partner">{vorgang.quelle.aussteller ?? vorgang.dateiname}</span><br />
+              <span class="klein">{vorgang.ergebnis.document_type}</span>
+            </td>
+            <td class="konto">{vorgang.ergebnis.belegfeld_1 ?? '—'}</td>
+            <td><span class="format">{FORMAT_TEXT[vorgang.quelle.format]}</span></td>
+            <td>
+              <span class="konf">
+                <span class={'bar ' + konfidenzKlasse(konfidenz)}>
+                  <i style={`width:${Math.round(konfidenz * 100)}%`}></i>
+                </span>
+                <span>{konfidenz.toFixed(2).replace('.', ',')}</span>
+              </span>
+            </td>
+            <td class="r num">{betrag(vorgang.quelle.brutto)}</td>
+          </tr>
+        );
+      })}
+    </tbody>
+  </table>
+)}
+
+<style is:global>
+  .leer {
+    color: var(--text-2); background: var(--surface-card);
+    border: 1px solid var(--border); border-radius: var(--r-lg);
+    padding: 2rem; text-align: center; margin: 0;
+  }
+  /* Die ganze Zeile ist klickbar; der Zustand traegt den echten Link fuer Tastatur und Screenreader. */
+  .tabelle .zustand { text-decoration: none; }
+  .tabelle .zustand:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+</style>

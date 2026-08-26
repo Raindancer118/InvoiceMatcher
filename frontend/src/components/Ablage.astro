@@ -1,0 +1,52 @@
+---
+/** Die Ablageflaeche fuer neue Belege. Zweithaeufigste Handlung, deshalb neben der ersten. */
+interface Props { kompakt?: boolean }
+const { kompakt = false } = Astro.props;
+---
+<form class="dropzone" method="post" action="/belege/einreichen" enctype="multipart/form-data">
+  <h3>Beleg einreichen</h3>
+  {!kompakt && <p>PDF, ZUGFeRD oder XRechnung hierher ziehen</p>}
+  <input type="file" name="datei" accept=".pdf,.xml,application/pdf,application/xml" required hidden id="datei" />
+  <label class="btn btn-primary" for="datei">Datei auswählen</label>
+  <button class="btn btn-ghost" type="submit" hidden id="absenden">Einreichen</button>
+  <p class="gewaehlt" hidden id="gewaehlt"></p>
+</form>
+
+<script>
+  const feld = document.getElementById('datei') as HTMLInputElement;
+  const absenden = document.getElementById('absenden') as HTMLButtonElement;
+  const gewaehlt = document.getElementById('gewaehlt') as HTMLParagraphElement;
+  const flaeche = feld.closest('.dropzone') as HTMLFormElement;
+
+  function uebernehmen(dateien: FileList | null) {
+    if (!dateien || dateien.length === 0) return;
+    feld.files = dateien;
+    gewaehlt.textContent = dateien[0]!.name;
+    gewaehlt.hidden = false;
+    absenden.hidden = false;
+  }
+
+  feld.addEventListener('change', () => uebernehmen(feld.files));
+
+  // Ziehen und Ablegen ohne Bibliothek; der Klickweg bleibt vollstaendig erhalten.
+  for (const name of ['dragenter', 'dragover'] as const) {
+    flaeche.addEventListener(name, (e) => { e.preventDefault(); flaeche.classList.add('darueber'); });
+  }
+  for (const name of ['dragleave', 'drop'] as const) {
+    flaeche.addEventListener(name, () => flaeche.classList.remove('darueber'));
+  }
+  flaeche.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uebernehmen(e.dataTransfer?.files ?? null);
+  });
+</script>
+
+<style is:global>
+  .dropzone.darueber { border-color: var(--accent); background: var(--surface-sunken); }
+  .dropzone label.btn { cursor: pointer; }
+  .dropzone .gewaehlt {
+    margin: .8rem 0 0; font-size: .82rem; color: var(--text-2);
+    overflow-wrap: anywhere;
+  }
+  .dropzone .btn + .btn { margin-left: .5rem; }
+</style>

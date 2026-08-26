@@ -1,0 +1,76 @@
+---
+import Grundgeruest from '../layouts/Grundgeruest.astro';
+import Vorgangstabelle from '../components/Vorgangstabelle.astro';
+import Ablage from '../components/Ablage.astro';
+import { api, type Vorgang } from '../lib/api';
+import { anzeigezustand, datum, heute, zahlwort } from '../lib/darstellung';
+
+const { sitzung } = Astro.locals;
+const alle = await api.vorgaenge(sitzung.accessToken, true);
+
+const offen = alle.filter((v) => anzeigezustand(v) === 'offen');
+const zurUebergabe = alle.filter((v) => anzeigezustand(v) === 'freigegeben');
+const uebergeben = alle.filter((v) => anzeigezustand(v) === 'uebergeben');
+const abgelehnt = alle.filter((v) => anzeigezustand(v) === 'abgelehnt');
+
+const nachAlter = (a: Vorgang, b: Vorgang) =>
+  new Date(a.eingegangenAm).getTime() - new Date(b.eingegangenAm).getTime();
+
+const aeltesteZuerst = [...offen].sort(nachAlter);
+const eineWoche = Date.now() - 7 * 24 * 60 * 60 * 1000;
+const langeLiegend = offen.filter((v) => new Date(v.eingegangenAm).getTime() < eineWoche).length;
+const aeltester = aeltesteZuerst[0];
+
+const vorname = sitzung.benutzer.name.split(/\s+/)[0];
+---
+<Grundgeruest titel="Übersicht" benutzer={sitzung.benutzer.name} aktiv="uebersicht">
+  <p class="greeting">Willkommen, <strong>{sitzung.benutzer.name}</strong>.</p>
+  <p class="datum">{heute()}</p>
+
+  <div class="hero">
+    <div>
+      {offen.length === 0 ? (
+        <>
+          <h1 class="headline">Nichts wartet auf dich, {vorname}.</h1>
+          <p class="sub">Alle eingegangenen Belege sind entschieden.</p>
+        </>
+      ) : (
+        <>
+          <h1 class="headline">
+            <span class="zahl">{zahlwort(offen.length)} {offen.length === 1 ? 'Vorgang' : 'Vorgänge'}</span>
+            {offen.length === 1 ? ' wartet auf dich.' : ' warten auf dich.'}
+          </h1>
+          <p class="sub">
+            {langeLiegend > 0 && (
+              <>{langeLiegend === 1 ? 'Einer liegt' : `${langeLiegend} davon liegen`} seit über einer Woche. </>
+            )}
+            {aeltester && <>Der älteste kam am {datum(aeltester.eingegangenAm)} herein.</>}
+          </p>
+        </>
+      )}
+    </div>
+
+    <Ablage />
+  </div>
+
+  <p class="zahlenzeile">
+    <b class="num">{offen.length}</b> offen
+    <span class="trenner">·</span>
+    <b class="num">{zurUebergabe.length}</b> zur Übergabe bereit
+    <span class="trenner">·</span>
+    <b class="num">{uebergeben.length}</b> übergeben
+    <span class="trenner">·</span>
+    <b class="num">{abgelehnt.length}</b> abgelehnt
+  </p>
+
+  <section>
+    <div class="abschnitt">
+      <h2>Was zuerst</h2>
+      {offen.length > 3 && <a href="/pruefliste">Alle {offen.length} Vorgänge ansehen →</a>}
+    </div>
+    <Vorgangstabelle
+      vorgaenge={aeltesteZuerst.slice(0, 3)}
+      leerText="Keine offenen Vorgänge."
+    />
+  </section>
+</Grundgeruest>

@@ -1,0 +1,72 @@
+---
+import '../styles/tokens.css';
+
+interface Props {
+  titel: string;
+  /** Name aus dem Konto; fehlt auf Seiten ausserhalb der Anmeldung. */
+  benutzer?: string;
+  aktiv?: 'uebersicht' | 'pruefliste' | 'export';
+}
+
+const { titel, benutzer, aktiv } = Astro.props;
+
+const initialen = benutzer
+  ? benutzer.split(/\s+/).slice(0, 2).map((teil) => teil[0]?.toUpperCase() ?? '').join('')
+  : '';
+
+const navigation = [
+  { pfad: '/', name: 'Übersicht', schluessel: 'uebersicht' },
+  { pfad: '/pruefliste', name: 'Prüfliste', schluessel: 'pruefliste' },
+  { pfad: '/export', name: 'Export', schluessel: 'export' },
+] as const;
+---
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{titel} · InvoiceMatcher</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Open+Sans:wght@400;600;700&display=swap"
+    rel="stylesheet"
+  />
+</head>
+<body>
+  <header class="topbar">
+    <a class="wordmark" href="/"><span class="glyph">IM</span>InvoiceMatcher</a>
+    {benutzer && (
+      <nav class="topnav">
+        {navigation.map((eintrag) => (
+          <a href={eintrag.pfad} aria-current={aktiv === eintrag.schluessel ? 'page' : undefined}>
+            {eintrag.name}
+          </a>
+        ))}
+      </nav>
+    )}
+    {benutzer && (
+      <span class="user">
+        <span class="avatar">{initialen}</span>
+        {benutzer}
+        <a class="abmelden" href="/auth/logout">Abmelden</a>
+      </span>
+    )}
+  </header>
+
+  <main class="wrap">
+    <slot />
+  </main>
+</body>
+</html>
+
+<style is:global>
+  .wordmark { color: inherit; text-decoration: none; }
+  .abmelden {
+    font-size: .78rem; font-weight: 600; color: var(--text-3);
+    text-decoration: none; margin-left: .4rem; padding: .35rem .5rem;
+    border-radius: var(--r-md);
+  }
+  .abmelden:hover { color: var(--text); background: var(--surface-sunken); }
+</style>

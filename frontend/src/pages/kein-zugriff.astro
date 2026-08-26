@@ -1,0 +1,18 @@
+---
+import Grundgeruest from '../layouts/Grundgeruest.astro';
+import { sitzungLesen } from '../lib/session';
+import { config } from '../lib/config';
+
+const sitzung = await sitzungLesen(Astro.cookies);
+---
+<Grundgeruest titel="Kein Zugriff">
+  <p class="greeting">Angemeldet als <strong>{sitzung?.benutzer.name ?? 'unbekannt'}</strong>.</p>
+  <h1 class="headline">Dein Konto ist für den InvoiceMatcher nicht freigeschaltet.</h1>
+  <p class="sub">
+    Es fehlt die Gruppe <code>{config.requiredGroup}</code>. Wer sie vergeben darf, weiß die
+    Administration von portal.tstieh.de.
+  </p>
+  <p style="margin-top:2rem">
+    <a class="btn btn-ghost" href="/auth/logout">Mit einem anderen Konto anmelden</a>
+  </p>
+</Grundgeruest>

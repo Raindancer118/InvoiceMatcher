@@ -1,0 +1,10 @@
+---
+import { abmeldeZiel } from '../../lib/oidc';
+import { sitzungLesen, sitzungLoeschen } from '../../lib/session';
+
+const sitzung = await sitzungLesen(Astro.cookies);
+sitzungLoeschen(Astro.cookies);
+
+// Auch bei Authentik abmelden, sonst ist man mit einem Klick wieder drin.
+return Astro.redirect(sitzung?.idToken ? (await abmeldeZiel(sitzung.idToken)).href : '/');
+---

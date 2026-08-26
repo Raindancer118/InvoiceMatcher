@@ -49,3 +49,11 @@ build/
 
 ### Projektinterne Doku (nicht committen)
 /Project.md
+
+### Frontend ###
+frontend/node_modules/
+frontend/dist/
+frontend/.astro/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example

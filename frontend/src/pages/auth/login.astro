@@ -1,0 +1,17 @@
+---
+import { anmeldungBeginnen } from '../../lib/oidc';
+import { anmeldungSchreiben } from '../../lib/session';
+
+const ziel = Astro.url.searchParams.get('ziel');
+// Nur eigene Pfade als Rueckkehrziel zulassen; sonst waere das hier ein offener Weiterleiter.
+const sicheresZiel = ziel && ziel.startsWith('/') && !ziel.startsWith('//') ? ziel : '/';
+
+const beginn = await anmeldungBeginnen();
+await anmeldungSchreiben(Astro.cookies, {
+  state: beginn.state,
+  nonce: beginn.nonce,
+  codeVerifier: beginn.codeVerifier,
+  ziel: sicheresZiel,
+});
+return Astro.redirect(beginn.ziel.href);
+---

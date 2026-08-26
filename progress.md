@@ -26,9 +26,12 @@
 - [x] API gegen Authentik abgesichert (JWT, Gruppenzwang, Healthcheck bleibt frei)
 
 ## Offen
+- [ ] Authentik einrichten: Provider, Application und Gruppe `InvoiceMatcher` auf portal.tstieh.de
+- [ ] Deployment auf dorn + NPM-Host auf saphira
 - [ ] Belegannahme per Mail (Mailcow-Postfach abholen) — dafuer muss `de.raindancer118:mailcow-client-java`
       erst nach packages.tstieh.de deployt werden; aktuell liegt es nur lokal in `~/.m2`
-- [ ] Astro-Frontend gegen `/api/v1` (Design steht, siehe `Design.md`)
+- [x] Astro-Frontend gegen `/api/v1`: Uebersicht, Pruefliste, Vorgangsdetail mit Belegbild,
+      Freigabe/Ablehnung, DATEV-Export - angemeldet ueber Authentik (portal.tstieh.de)
 - [ ] Wechsel auf eine Server-Datenbank samt Migrationswerkzeug, sobald mehrere Mandanten
       oder parallele Schreiber dazukommen (Ports `ReviewRepository` und `DocumentStore`
       bleiben unverändert)

@@ -1,0 +1,53 @@
+---
+import Grundgeruest from '../layouts/Grundgeruest.astro';
+import Vorgangstabelle from '../components/Vorgangstabelle.astro';
+import { api } from '../lib/api';
+import { anzeigezustand } from '../lib/darstellung';
+
+const { sitzung } = Astro.locals;
+const filter = Astro.url.searchParams.get('zustand') ?? 'offen';
+
+const alle = await api.vorgaenge(sitzung.accessToken, true);
+const gezeigt = filter === 'alle' ? alle : alle.filter((v) => anzeigezustand(v) === filter);
+
+const reiter = [
+  { schluessel: 'offen', name: 'Offen' },
+  { schluessel: 'freigegeben', name: 'Freigegeben' },
+  { schluessel: 'uebergeben', name: 'Übergeben' },
+  { schluessel: 'abgelehnt', name: 'Abgelehnt' },
+  { schluessel: 'alle', name: 'Alle' },
+];
+
+const anzahl = (schluessel: string) =>
+  schluessel === 'alle' ? alle.length : alle.filter((v) => anzeigezustand(v) === schluessel).length;
+---
+<Grundgeruest titel="Prüfliste" benutzer={sitzung.benutzer.name} aktiv="pruefliste">
+  <div class="abschnitt">
+    <h2>Prüfliste</h2>
+  </div>
+
+  <nav class="reiter">
+    {reiter.map((eintrag) => (
+      <a
+        href={`/pruefliste?zustand=${eintrag.schluessel}`}
+        aria-current={filter === eintrag.schluessel ? 'page' : undefined}
+      >
+        {eintrag.name} <span class="anzahl num">{anzahl(eintrag.schluessel)}</span>
+      </a>
+    ))}
+  </nav>
+
+  <Vorgangstabelle vorgaenge={gezeigt} leerText="In diesem Zustand liegt gerade nichts." />
+</Grundgeruest>
+
+<style is:global>
+  .reiter { display: flex; flex-wrap: wrap; gap: .25rem; margin-bottom: 1rem; }
+  .reiter a {
+    display: flex; align-items: center; gap: .45rem; min-height: 44px;
+    padding: .5rem .8rem; border-radius: var(--r-md);
+    color: var(--text-2); text-decoration: none; font-size: .88rem; font-weight: 600;
+  }
+  .reiter a:hover { background: var(--surface-sunken); color: var(--text); }
+  .reiter a[aria-current] { background: var(--surface-card); color: var(--text); box-shadow: var(--shadow-card); }
+  .reiter .anzahl { color: var(--text-3); font-size: .78rem; }
+</style>
