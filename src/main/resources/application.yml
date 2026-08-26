@@ -44,6 +44,22 @@ invoicematcher:
     vat-id: "DE 815000010"
     tax-number: "24112345678"
 
+  # Zeichenerkennung fuer gescannte Belege ohne Textebene. Setzt das Systemwerkzeug
+  # 'tesseract' samt Sprachdaten voraus; fehlt es, gehen solche Belege zur Pruefung.
+  ocr:
+    enabled: ${INVOICEMATCHER_OCR_ENABLED:true}
+    command: ${INVOICEMATCHER_OCR_COMMAND:tesseract}
+    language: ${INVOICEMATCHER_OCR_LANGUAGE:deu+eng}
+    # Leer: die Sprachdaten liegen dort, wo Tesseract sie selbst sucht.
+    tessdata-dir: ${INVOICEMATCHER_OCR_TESSDATA_DIR:}
+    dpi: 300
+    max-pages: 5
+    # 3 = Tesseract erkennt die Seitenaufteilung selbst; Belege sind mehrspaltig.
+    page-segmentation-mode: 3
+    # Weniger Zeichen je Seite heisst: die Textebene ist leer oder eine Geraetekennung.
+    min-characters-per-page: 40
+    timeout: 60s
+
   accounting:
     # Nettoeinzelpreis, ab dem eine Anlagenposition nicht mehr automatisch kontiert wird.
     gwg-limit: 800.00

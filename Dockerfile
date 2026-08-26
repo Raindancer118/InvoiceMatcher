@@ -16,8 +16,10 @@ FROM eclipse-temurin:25-jre AS runtime
 WORKDIR /app
 
 # curl wird fuer den HEALTHCHECK gebraucht; das JRE-Image bringt keinen HTTP-Client mit.
+# tesseract-ocr liest gescannte Belege ohne Textebene; ohne die deutschen Sprachdaten waere
+# die Erkennung auf einem deutschen Beleg wertlos.
 RUN apt-get update \
- && apt-get install --no-install-recommends -y curl \
+ && apt-get install --no-install-recommends -y curl tesseract-ocr tesseract-ocr-deu \
  && rm -rf /var/lib/apt/lists/*
 
 # Kein Root im Container.

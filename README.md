@@ -6,8 +6,13 @@ menschliche Prüfung statt direkt in die Buchhaltung.
 
 ## Was der Dienst kann
 
-- **Drei Belegformate** — PDF (Textheuristik), ZUGFeRD/Factur-X (eingebettetes CII-XML) und
-  XRechnung (UBL). Strukturierte Daten haben immer Vorrang vor der Textauswertung.
+- **Vier Belegformate** — PDF (Textheuristik), gescanntes PDF (Zeichenerkennung),
+  ZUGFeRD/Factur-X (eingebettetes CII-XML) und XRechnung (UBL). Strukturierte Daten haben
+  immer Vorrang vor der Textauswertung.
+- **Gescannte Belege** — hat ein PDF keine brauchbare Textebene, liest Tesseract die
+  Seitenbilder. Die Spaltenstruktur des Belegs bleibt dabei erhalten, damit Anschriftenfeld,
+  Kopfdaten und Positionstabelle weiter getrennt werden können. Ein so gelesener Beleg wird als
+  `SCAN` gekennzeichnet und geht wegen der geringeren Konfidenz zur Prüfung.
 - **Belegtyp nach Regelwerk** — `Rechnungseingang`, `Rechnungsausgang`, die beiden
   Prüfvarianten und `Sonstige`.
 - **Vorkontierung** — Personenkonto aus den Stammdaten (Sammelkonto nach Anfangsbuchstabe für
@@ -24,6 +29,11 @@ menschliche Prüfung statt direkt in die Buchhaltung.
   Belegsatzdatendatei. Übergebene Vorgänge werden vermerkt und nicht ein zweites Mal gebucht.
 
 ## Schnellstart
+
+Für gescannte Belege wird Tesseract samt deutschen Sprachdaten gebraucht
+(`apt install tesseract-ocr tesseract-ocr-deu`; das Container-Image bringt beides mit). Fehlt
+es, laufen alle anderen Formate unverändert weiter — gescannte Belege gehen dann mit leeren
+Feldern zur Prüfung, und der Start meldet das als Warnung.
 
 ```bash
 mvn verify                # Testsuite (inkl. aller 31 Testbelege)
@@ -98,6 +108,16 @@ Der gesamte Kontierungsrahmen steht in `src/main/resources/application.yml` unte
 `invoicematcher` — eigenes Unternehmen, Warengruppen mit Stichwörtern, GWG-Grenze,
 Partnerstammdaten, Review-Schwelle. Eine neue Warengruppe braucht kein Deployment, nur einen
 Eintrag.
+
+Die Zeichenerkennung steht unter `invoicematcher.ocr` und lässt sich vollständig über
+Umgebungsvariablen steuern:
+
+| Variable | Vorgabe | Zweck |
+|---|---|---|
+| `INVOICEMATCHER_OCR_ENABLED` | `true` | abschalten, wenn kein Tesseract vorhanden ist |
+| `INVOICEMATCHER_OCR_COMMAND` | `tesseract` | Pfad, falls es nicht im `PATH` liegt |
+| `INVOICEMATCHER_OCR_LANGUAGE` | `deu+eng` | Sprachdaten |
+| `INVOICEMATCHER_OCR_TESSDATA_DIR` | — | abweichendes Verzeichnis der Sprachdaten |
 
 ## DATEV-Übergabe
 

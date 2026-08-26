@@ -20,6 +20,14 @@ jobs:
           distribution: temurin
           cache: maven
 
+      # Die Zeichenerkennung fuer gescannte Belege ruft 'tesseract' auf. Ohne das Paket
+      # ueberspringt die Testsuite die Gegenprobe mit dem echten Werkzeug - und dann wuerde
+      # ein Fehler in der OCR-Stufe hier nie auffallen.
+      - name: Tesseract einrichten
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y tesseract-ocr tesseract-ocr-deu
+
       - name: Testsuite
         run: mvn -B verify
 

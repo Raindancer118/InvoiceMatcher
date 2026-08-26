@@ -19,11 +19,12 @@
       Belegsatzdaten, Belegbild), validiert gegen die offiziellen DATEV-Schemata
 - [x] Exportvermerk je Vorgang gegen doppelte Buchung
 - [x] Persistenz in SQLite: Pruefvorgaenge und Belegbilder ueberstehen einen Neustart
+- [x] OCR-Stufe fuer gescannte Belege (Tesseract), layouterhaltend ueber die Wortrahmen -
+      ein Scan wird identisch kontiert wie das Original und geht zur Pruefung
 
 ## Offen
 - [ ] Belegannahme per Mail (Mailcow-Postfach abholen) — dafuer muss `de.raindancer118:mailcow-client-java`
       erst nach packages.tstieh.de deployt werden; aktuell liegt es nur lokal in `~/.m2`
-- [ ] OCR-Stufe für gescannte Belege (Port `PdfTextSource` steht bereit)
 - [ ] Astro-Frontend gegen `/api/v1`
 - [ ] Wechsel auf eine Server-Datenbank samt Migrationswerkzeug, sobald mehrere Mandanten
       oder parallele Schreiber dazukommen (Ports `ReviewRepository` und `DocumentStore`

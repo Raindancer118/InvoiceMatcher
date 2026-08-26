@@ -26,7 +26,7 @@ class ExtractionServiceTest {
 
         @Test
         void keepsHorizontalGapsSoColumnsStaySeparable() {
-            DocumentText text = DocumentText.of(source.extractText(Belege.bytes("01_PDF_Klaus_Furniere.pdf")));
+            DocumentText text = DocumentText.of(source.extractText(Belege.bytes("01_PDF_Klaus_Furniere.pdf")).text());
 
             assertThat(text.findFirstLine(line -> line.matches("Firma\\s{3,}Steuernr\\..*"))).isPresent();
             assertThat(text.lines()).anySatisfy(line -> assertThat(line).matches("Rechnung\\s{3,}Rechnungsdatum.*"));

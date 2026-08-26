@@ -32,7 +32,8 @@ public class PdfTextInvoiceExtractor implements InvoiceExtractor {
 
     @Override
     public ExtractedInvoice extract(SourceDocument document) {
-        return assembler.assemble(textSource.extractText(document.content()), SourceFormat.PDF);
+        PdfText text = textSource.extractText(document.content());
+        return assembler.assemble(text.text(), text.recognized() ? SourceFormat.SCAN : SourceFormat.PDF);
     }
 
     @Override

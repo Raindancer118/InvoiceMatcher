@@ -7,6 +7,7 @@ import de.pegasus.invoicematcher.extraction.einvoice.XmlInvoiceExtractor;
 import de.pegasus.invoicematcher.extraction.einvoice.ZugferdPdfExtractor;
 import de.pegasus.invoicematcher.extraction.text.PdfBoxTextSource;
 import de.pegasus.invoicematcher.extraction.text.PdfTextInvoiceExtractor;
+import de.pegasus.invoicematcher.extraction.text.PdfTextSource;
 import de.pegasus.invoicematcher.extraction.text.TextInvoiceAssembler;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.stereotype.Service;
@@ -25,13 +26,21 @@ public class ExtractionService {
         this.extractors = List.copyOf(ordered);
     }
 
-    /** Der Standardaufbau ohne Spring-Kontext - fuer Tests und eingebettete Nutzung. */
+    /**
+     * Der Standardaufbau ohne Spring-Kontext - fuer Tests und eingebettete Nutzung. Ohne
+     * Zeichenerkennung: sie braucht ein Systemwerkzeug, das hier nicht vorausgesetzt wird.
+     */
     public static ExtractionService standard() {
+        return standard(new PdfBoxTextSource());
+    }
+
+    /** Derselbe Aufbau mit einer eigenen Textquelle, etwa der vorgeschalteten Zeichenerkennung. */
+    public static ExtractionService standard(PdfTextSource pdfTextSource) {
         EInvoiceXmlParser xmlParser = new EInvoiceXmlParser();
         return new ExtractionService(List.of(
                 new XmlInvoiceExtractor(xmlParser),
                 new ZugferdPdfExtractor(new MustangEmbeddedXmlSource(), xmlParser),
-                new PdfTextInvoiceExtractor(new PdfBoxTextSource(), new TextInvoiceAssembler())));
+                new PdfTextInvoiceExtractor(pdfTextSource, new TextInvoiceAssembler())));
     }
 
     public ExtractedInvoice extract(SourceDocument document) {

@@ -101,8 +101,12 @@ public final class Kontierung {
     }
 
     public static ClassificationService standardClassificationService() {
-        return new ClassificationService(ExtractionService.standard(), standardRuleEngine(),
-                new ConfidenceCalculator());
+        return classificationServiceWith(ExtractionService.standard());
+    }
+
+    /** Derselbe Dienst mit einer eigenen Extraktion, etwa der vorgeschalteten Zeichenerkennung. */
+    public static ClassificationService classificationServiceWith(ExtractionService extraction) {
+        return new ClassificationService(extraction, standardRuleEngine(), new ConfidenceCalculator());
     }
 
     public static DatevExportProperties datevProperties() {
