@@ -1,0 +1,75 @@
+name: Deploy
+
+# Laeuft erst, wenn "Build" auf main durchgelaufen ist: die Images, die hier gezogen
+# werden, entstehen genau dort. Ein Deploy ohne gruene Testsuite gibt es damit nicht.
+on:
+  workflow_run:
+    workflows: [ Build ]
+    branches: [ main ]
+    types: [ completed ]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-invoicematcher
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Auf dorn ausrollen
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: [ self-hosted, invoicematcher ]
+    permissions:
+      packages: read
+    env:
+      VERZEICHNIS: /home/murthag/invoicematcher
+
+    steps:
+      # Die Anmeldung gilt nur fuer diesen Lauf; auf dem Server liegt danach kein
+      # dauerhaftes Zugangsdatum fuer die Registry.
+      - name: An der GitHub Container Registry anmelden
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Images ziehen
+        working-directory: /home/murthag/invoicematcher
+        run: docker compose pull
+
+      - name: Starten
+        working-directory: /home/murthag/invoicematcher
+        run: docker compose up -d --remove-orphans
+
+      # Ein Deploy gilt erst als erfolgreich, wenn die Anwendung antwortet - nicht schon,
+      # wenn der Container laeuft.
+      - name: Auf gesunde Anwendung warten
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8139/actuator/health | grep -q '"status":"UP"'; then
+              echo "API ist oben"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "API wurde nicht gesund - letzte Ausgaben:"
+          docker logs --tail 80 invoicematcher || true
+          exit 1
+
+      - name: Oberflaeche pruefen
+        run: |
+          for i in $(seq 1 20); do
+            if curl -fsS -o /dev/null http://127.0.0.1:8138/kein-zugriff; then
+              echo "Oberflaeche antwortet"
+              exit 0
+            fi
+            sleep 5
+          done
+          docker logs --tail 80 invoicematcher-frontend || true
+          exit 1
+
+      - name: Alte Images aufraeumen
+        if: always()
+        run: docker image prune -f --filter "until=168h"
+
+      - name: Von der Registry abmelden
+        if: always()
+        run: docker logout ghcr.io
