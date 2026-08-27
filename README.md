@@ -21,6 +21,10 @@ menschliche Prüfung statt direkt in die Buchhaltung.
 - **Pflichtprüfungen** — §14-UStG-Angaben, Rechenprobe Netto + Steuer = Brutto, GWG-Grenze.
 - **Human-in-the-Loop** — Prüfliste mit Freigabe, Korrektur und Ablehnung; optional
   Mailbenachrichtigung.
+- **Belegannahme per Mail** — ein Postfach wird in festem Abstand über IMAP abgeholt; jeder
+  PDF- oder XML-Anhang geht denselben Weg wie ein Upload. Bearbeitete Nachrichten werden in
+  einen Ordner umgelegt statt gelöscht, unverwertbare in einen zweiten — so verschwindet kein
+  Beleg unbemerkt, und derselbe Beleg wird nicht zweimal gebucht.
 - **Persistenz** — Prüfvorgänge und Belegbilder liegen in einer SQLite-Datei und überstehen
   einen Neustart. Kein Datenbankserver nötig, die Ablage ist eine Datei zum Sichern.
 - **DATEV-Übergabe** — erzeugt ein DATEV Document-Package (XML-Schnittstelle online, Version
@@ -145,6 +149,28 @@ Umgebungsvariablen steuern:
 | `INVOICEMATCHER_OCR_COMMAND` | `tesseract` | Pfad, falls es nicht im `PATH` liegt |
 | `INVOICEMATCHER_OCR_LANGUAGE` | `deu+eng` | Sprachdaten |
 | `INVOICEMATCHER_OCR_TESSDATA_DIR` | — | abweichendes Verzeichnis der Sprachdaten |
+
+## Belegannahme per Mail
+
+Abgeschaltet, bis ein Postfach hinterlegt ist. Eingeschaltet holt die Anwendung alle fünf
+Minuten die ungelesenen Nachrichten, gibt jeden PDF- oder XML-Anhang in den Prüfablauf und legt
+die Nachricht danach um: nach `Verarbeitet`, wenn mindestens ein Beleg angenommen wurde, sonst
+nach `Fehlgeschlagen` (kein Anhang, unlesbarer Beleg, nicht zugelassener Absender). Gelöscht
+wird nichts.
+
+| Variable | Vorgabe | Zweck |
+|---|---|---|
+| `INVOICEMATCHER_MAIL_ENABLED` | `false` | Belegannahme per Mail einschalten |
+| `INVOICEMATCHER_MAIL_HOST` | `mx.volantic.de` | IMAP-Server |
+| `INVOICEMATCHER_MAIL_PORT` | `993` | Port (`imaps`) |
+| `INVOICEMATCHER_MAIL_USER` | `belege@volantic.de` | Postfach |
+| `INVOICEMATCHER_MAIL_PASSWORD` | — | Kennwort |
+| `INVOICEMATCHER_MAIL_ALLOWED_SENDERS` | — | zugelassene Absender, kommagetrennt: Vollanschrift oder `@domäne` |
+| `INVOICEMATCHER_MAIL_POLL_INTERVAL` | `5m` | Abstand der Abholung |
+| `INVOICEMATCHER_MAIL_FOLDER` | `INBOX` | abzuholender Ordner |
+
+Ohne Absenderliste darf **jeder** Belege in die Buchhaltung einliefern; der Start sagt das als
+Warnung. Für ein öffentlich erreichbares Postfach ist die Liste die eigentliche Absicherung.
 
 ## DATEV-Übergabe
 

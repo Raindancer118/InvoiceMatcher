@@ -13,7 +13,7 @@
 
     <groupId>de.pegasus.invoicematcher</groupId>
     <artifactId>InvoiceMatcher</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
     <name>InvoiceMatcher</name>
     <description>Belegklassifikation und DATEV-Vorkontierung fuer Eingangs- und Ausgangsrechnungen</description>
 
@@ -25,6 +25,7 @@
         <opencsv.version>5.12.0</opencsv.version>
         <commons-text.version>1.15.0</commons-text.version>
         <sqlite.version>3.53.2.1</sqlite.version>
+        <greenmail.version>2.1.13</greenmail.version>
     </properties>
 
     <dependencies>
@@ -99,6 +100,13 @@
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Echter IMAP-Server im Test: die Belegannahme per Mail wird nicht nachgestellt -->
+        <dependency>
+            <groupId>com.icegreen</groupId>
+            <artifactId>greenmail-junit5</artifactId>
+            <version>${greenmail.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

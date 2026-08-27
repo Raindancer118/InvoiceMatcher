@@ -24,6 +24,14 @@ services:
       SPRING_MAIL_PORT: "${SMTP_PORT:-587}"
       SPRING_MAIL_USERNAME: "${SMTP_USER:-}"
       SPRING_MAIL_PASSWORD: "${SMTP_PASSWORD:-}"
+      # Belegannahme aus dem Postfach. Ohne MAIL_INTAKE_ENABLED=true wird nichts abgeholt.
+      INVOICEMATCHER_MAIL_ENABLED: "${MAIL_INTAKE_ENABLED:-false}"
+      INVOICEMATCHER_MAIL_HOST: "${MAIL_INTAKE_HOST:-mx.volantic.de}"
+      INVOICEMATCHER_MAIL_PORT: "${MAIL_INTAKE_PORT:-993}"
+      INVOICEMATCHER_MAIL_USER: "${MAIL_INTAKE_USER:-belege@volantic.de}"
+      INVOICEMATCHER_MAIL_PASSWORD: "${MAIL_INTAKE_PASSWORD:-}"
+      # Leer heisst: jeder Absender darf Belege einliefern.
+      INVOICEMATCHER_MAIL_ALLOWED_SENDERS: "${MAIL_INTAKE_ALLOWED_SENDERS:-}"
     restart: unless-stopped
 
   # Pruefoberflaeche. Spricht die API ueber das Compose-Netz an; der Browser sieht sie nie.

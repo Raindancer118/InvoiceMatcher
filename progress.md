@@ -24,12 +24,12 @@
 
 - [x] Belegbild zum Pruefvorgang ueber die API abrufbar (`GET /api/v1/pruefungen/{id}/beleg`)
 - [x] API gegen Authentik abgesichert (JWT, Gruppenzwang, Healthcheck bleibt frei)
+- [x] Belegannahme per Mail: Postfach ueber IMAP abholen, PDF-/XML-Anhaenge in den Pruefablauf,
+      Nachrichten umlegen statt loeschen, Absenderliste als Zugangsschutz
 
 ## Offen
 - [ ] Authentik einrichten: Provider, Application und Gruppe `InvoiceMatcher` auf portal.tstieh.de
 - [ ] Deployment auf dorn + NPM-Host auf saphira
-- [ ] Belegannahme per Mail (Mailcow-Postfach abholen) — dafuer muss `de.raindancer118:mailcow-client-java`
-      erst nach packages.tstieh.de deployt werden; aktuell liegt es nur lokal in `~/.m2`
 - [x] Astro-Frontend gegen `/api/v1`: Uebersicht, Pruefliste, Vorgangsdetail mit Belegbild,
       Freigabe/Ablehnung, DATEV-Export - angemeldet ueber Authentik (portal.tstieh.de)
 - [ ] Wechsel auf eine Server-Datenbank samt Migrationswerkzeug, sobald mehrere Mandanten

@@ -157,6 +157,28 @@ invoicematcher:
       - "http://localhost:4321"
       - "http://127.0.0.1:4321"
 
+  # Belegannahme aus einem Postfach. Ohne 'enabled: true' wird nichts verbunden und
+  # nicht getaktet - eine Anwendung ohne Postfach soll keine Verbindungsfehler protokollieren.
+  intake:
+    mail:
+      enabled: ${INVOICEMATCHER_MAIL_ENABLED:false}
+      protocol: ${INVOICEMATCHER_MAIL_PROTOCOL:imaps}
+      host: ${INVOICEMATCHER_MAIL_HOST:mx.volantic.de}
+      port: ${INVOICEMATCHER_MAIL_PORT:993}
+      username: ${INVOICEMATCHER_MAIL_USER:belege@volantic.de}
+      password: ${INVOICEMATCHER_MAIL_PASSWORD:}
+      folder: ${INVOICEMATCHER_MAIL_FOLDER:INBOX}
+      # Bearbeitete Nachrichten werden umgelegt, nicht geloescht: die Ordner sind die
+      # Spur, an der sich nachvollziehen laesst, was die Annahme getan hat.
+      processed-folder: ${INVOICEMATCHER_MAIL_PROCESSED_FOLDER:Verarbeitet}
+      failed-folder: ${INVOICEMATCHER_MAIL_FAILED_FOLDER:Fehlgeschlagen}
+      poll-interval: ${INVOICEMATCHER_MAIL_POLL_INTERVAL:5m}
+      max-messages-per-poll: 50
+      max-attachment-size: 20MB
+      # Wer hier steht, darf in die Buchhaltung einliefern - Vollanschrift oder Domaene
+      # ("@partner.example"). Leer heisst: jeder Absender darf es.
+      allowed-senders: ${INVOICEMATCHER_MAIL_ALLOWED_SENDERS:}
+
   review:
     # Ab diesem Konfidenzwert laeuft ein Beleg ohne menschliche Pruefung durch.
     auto-approve-threshold: 0.85
