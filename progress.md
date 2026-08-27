@@ -26,10 +26,13 @@
 - [x] API gegen Authentik abgesichert (JWT, Gruppenzwang, Healthcheck bleibt frei)
 - [x] Belegannahme per Mail: Postfach ueber IMAP abholen, PDF-/XML-Anhaenge in den Pruefablauf,
       Nachrichten umlegen statt loeschen, Absenderliste als Zugangsschutz
+- [x] Authentik eingerichtet: Provider/Application `invoicematcher` und Gruppe `InvoiceMatcher`
+      auf portal.tstieh.de, eigenes Scope-Mapping fuer die Gruppen
+- [x] Postfach `belege@volantic.de` auf der eigenen Mailcow angelegt und angebunden
+- [x] Live auf dorn unter https://belege.tstieh.de (NPMplus-Host 83 auf saphira, Auto-Deploy
+      per GitHub Actions nach gruenem Build)
 
 ## Offen
-- [ ] Authentik einrichten: Provider, Application und Gruppe `InvoiceMatcher` auf portal.tstieh.de
-- [ ] Deployment auf dorn + NPM-Host auf saphira
 - [x] Astro-Frontend gegen `/api/v1`: Uebersicht, Pruefliste, Vorgangsdetail mit Belegbild,
       Freigabe/Ablehnung, DATEV-Export - angemeldet ueber Authentik (portal.tstieh.de)
 - [ ] Wechsel auf eine Server-Datenbank samt Migrationswerkzeug, sobald mehrere Mandanten

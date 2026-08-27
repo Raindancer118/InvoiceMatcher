@@ -45,6 +45,12 @@ docker compose up --build   # API auf 8080, Oberfläche auf 4321
 Die Oberfläche braucht dafür die OIDC-Werte in einer `.env` neben `compose.yaml`
 (siehe `frontend/.env.example`).
 
+## Betrieb
+
+Live unter **https://belege.tstieh.de**, angemeldet ueber Authentik (`portal.tstieh.de`, Gruppe
+`InvoiceMatcher`). Belege koennen dort hochgeladen oder an **belege@volantic.de** geschickt
+werden — das Postfach wird alle fuenf Minuten abgeholt.
+
 ## Schnellstart
 
 Für gescannte Belege wird Tesseract samt deutschen Sprachdaten gebraucht
