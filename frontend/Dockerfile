@@ -10,6 +10,10 @@ RUN npm ci
 
 COPY astro.config.mjs tsconfig.json ./
 COPY src ./src
+# Der Session-Speicherpfad wird beim Bauen fest ins Server-Bundle einkompiliert (siehe
+# astro.config.mjs) - er muss deshalb schon hier auf den Pfad zeigen, der im Laufzeit-Image
+# tatsaechlich existiert, nicht auf das Arbeitsverzeichnis dieser Bau-Stufe.
+ENV SESSION_DIR=/app/.sessions
 RUN npm run build
 
 # Nur noch, was zur Laufzeit gebraucht wird.
@@ -27,6 +31,10 @@ ENV NODE_ENV=production \
 COPY --from=build --chown=node:node /build/node_modules ./node_modules
 COPY --from=build --chown=node:node /build/dist ./dist
 COPY --from=build --chown=node:node /build/package.json ./package.json
+
+# Muss existieren und beschreibbar sein, bevor der erste Login-Versuch session.set() aufruft -
+# der Pfad ist derselbe, der oben beim Bauen ins Server-Bundle einkompiliert wurde.
+RUN mkdir -p .sessions && chown node:node .sessions
 
 USER node
 EXPOSE 4321
