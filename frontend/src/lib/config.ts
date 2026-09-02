@@ -18,15 +18,20 @@ function optional(name: string, vorgabe: string): string {
   return wert && wert.trim() !== '' ? wert.trim() : vorgabe;
 }
 
+const redirectUri = pflicht('OIDC_REDIRECT_URI');
+
 export const config = {
   apiBasis: optional('INVOICEMATCHER_API', 'http://localhost:8080'),
   oidc: {
     issuer: pflicht('OIDC_ISSUER'),
     clientId: pflicht('OIDC_CLIENT_ID'),
     clientSecret: pflicht('OIDC_CLIENT_SECRET'),
-    redirectUri: pflicht('OIDC_REDIRECT_URI'),
+    redirectUri,
     postLogoutRedirectUri: optional('OIDC_POST_LOGOUT_REDIRECT_URI', '/'),
   },
   sessionSecret: pflicht('SESSION_SECRET'),
   requiredGroup: optional('REQUIRED_GROUP', 'InvoiceMatcher'),
+  // Fuer die eigene CSRF-Pruefung in middleware.ts: der oeffentliche Ursprung der Oberflaeche,
+  // aus der ohnehin gepflegten Redirect-URI abgeleitet statt einer weiteren Umgebungsvariable.
+  origin: new URL(redirectUri).origin,
 } as const;

@@ -18,4 +18,10 @@ export default defineConfig({
   session: {
     driver: sessionDrivers.fsLite({ base: process.env.SESSION_DIR ?? '.astro-sessions' }),
   },
+  // Astros eigene Pruefung vergleicht den Origin-Header mit 'url.origin', dessen Schema der
+  // Node-Adapter hinter dem TLS-terminierenden Proxy immer als 'http' sieht - jedes Formular
+  // waere faelschlich "fremd" (siehe middleware.ts fuer die Begruendung und den Ersatz).
+  security: {
+    checkOrigin: false,
+  },
 });

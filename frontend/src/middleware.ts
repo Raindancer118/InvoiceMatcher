@@ -16,7 +16,38 @@ const OFFEN = ['/auth/login', '/auth/callback', '/auth/logout', '/kein-zugriff',
 /** Erneuert schon kurz vor Ablauf, damit ein laufender Aufruf nicht mittendrin scheitert. */
 const VORLAUF_SEKUNDEN = 60;
 
+const SICHERE_METHODEN = ['GET', 'HEAD', 'OPTIONS'];
+const FORMULAR_CONTENT_TYPES = ['application/x-www-form-urlencoded', 'multipart/form-data', 'text/plain'];
+
+/**
+ * Ersetzt Astros eingebaute CSRF-Pruefung (security.checkOrigin, in astro.config.mjs
+ * abgeschaltet). Diese vergleicht den Origin-Header mit 'url.origin' - der Node-Adapter
+ * (@astrojs/node, Stand 11.1.4) ermittelt das Schema dafuer ausschliesslich an der rohen
+ * TCP-Verbindung und kennt X-Forwarded-Proto nicht. Hinter jedem TLS-terminierenden Proxy
+ * (hier NPMplus) ist die Verbindung zur Anwendung selbst immer nur HTTP - jedes Formular
+ * mit echtem 'https://...'-Origin-Header vom Browser waere damit dauerhaft "fremd". Der
+ * bekannte, feste Ursprung aus der Konfiguration ist zuverlaessig statt der Verbindung.
+ */
+function istFremdursprung(request: Request): boolean {
+  if (SICHERE_METHODEN.includes(request.method)) {
+    return false;
+  }
+  const gleicherUrsprung = request.headers.get('origin') === config.origin;
+  const contentType = request.headers.get('content-type');
+  if (contentType) {
+    const formularartig = FORMULAR_CONTENT_TYPES.some((t) => contentType.toLowerCase().includes(t));
+    return formularartig && !gleicherUrsprung;
+  }
+  return !gleicherUrsprung;
+}
+
 export const onRequest = defineMiddleware(async (context, next) => {
+  if (istFremdursprung(context.request)) {
+    return new Response(`Website-uebergreifende ${context.request.method}-Formularaufrufe sind verboten`, {
+      status: 403,
+    });
+  }
+
   const pfad = context.url.pathname;
   if (OFFEN.includes(pfad) || pfad.startsWith('/_')) {
     return next();
