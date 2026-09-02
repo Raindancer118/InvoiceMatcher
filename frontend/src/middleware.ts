@@ -22,9 +22,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return next();
   }
 
-  let sitzung = await sitzungLesen(context.cookies);
+  let sitzung = await sitzungLesen(context.session);
   if (sitzung && sitzung.laeuftAb - VORLAUF_SEKUNDEN < Math.floor(Date.now() / 1000)) {
-    sitzung = await erneuern(sitzung, context.cookies);
+    sitzung = await erneuern(sitzung, context.session);
   }
 
   if (!sitzung) {
@@ -40,7 +40,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   return next();
 });
 
-async function erneuern(sitzung: Sitzung, cookies: Parameters<typeof sitzungSchreiben>[0]) {
+async function erneuern(sitzung: Sitzung, session: Parameters<typeof sitzungSchreiben>[0]) {
   if (!sitzung.refreshToken) {
     return null;
   }
@@ -59,6 +59,6 @@ async function erneuern(sitzung: Sitzung, cookies: Parameters<typeof sitzungSchr
       gruppen: erneuert.gruppen.length > 0 ? erneuert.gruppen : sitzung.benutzer.gruppen,
     },
   };
-  await sitzungSchreiben(cookies, neu);
+  await sitzungSchreiben(session, neu);
   return neu;
 }

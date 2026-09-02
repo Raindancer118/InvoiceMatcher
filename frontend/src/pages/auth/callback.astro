@@ -2,8 +2,8 @@
 import { anmeldungAbschliessen } from '../../lib/oidc';
 import { anmeldungLesen, anmeldungLoeschen, sitzungSchreiben } from '../../lib/session';
 
-const anmeldung = await anmeldungLesen(Astro.cookies);
-anmeldungLoeschen(Astro.cookies);
+const anmeldung = await anmeldungLesen(Astro.session);
+anmeldungLoeschen(Astro.session);
 
 if (!anmeldung) {
   // Cookie abgelaufen oder der Aufruf kam nicht von uns: von vorn, nicht raten.
@@ -19,7 +19,7 @@ try {
   console.error('Anmeldung ueber Authentik fehlgeschlagen', fehler);
   return Astro.redirect('/anmeldung-fehlgeschlagen');
 }
-await sitzungSchreiben(Astro.cookies, {
+await sitzungSchreiben(Astro.session, {
   accessToken: ergebnis.accessToken,
   refreshToken: ergebnis.refreshToken,
   idToken: ergebnis.idToken,

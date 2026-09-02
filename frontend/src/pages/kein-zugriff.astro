@@ -3,7 +3,7 @@ import Grundgeruest from '../layouts/Grundgeruest.astro';
 import { sitzungLesen } from '../lib/session';
 import { config } from '../lib/config';
 
-const sitzung = await sitzungLesen(Astro.cookies);
+const sitzung = await sitzungLesen(Astro.session);
 ---
 <Grundgeruest titel="Kein Zugriff">
   <p class="greeting">Angemeldet als <strong>{sitzung?.benutzer.name ?? 'unbekannt'}</strong>.</p>

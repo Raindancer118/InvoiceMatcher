@@ -7,7 +7,7 @@ const ziel = Astro.url.searchParams.get('ziel');
 const sicheresZiel = ziel && ziel.startsWith('/') && !ziel.startsWith('//') ? ziel : '/';
 
 const beginn = await anmeldungBeginnen();
-await anmeldungSchreiben(Astro.cookies, {
+await anmeldungSchreiben(Astro.session, {
   state: beginn.state,
   nonce: beginn.nonce,
   codeVerifier: beginn.codeVerifier,

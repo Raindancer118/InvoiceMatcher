@@ -1,22 +1,15 @@
 /**
- * Die Sitzung als verschluesseltes Cookie.
+ * Die Sitzung als serverseitige Astro-Session (Dateisystem-Storage im Container).
  *
- * <p>Kein Sitzungsspeicher im Arbeitsspeicher: der ueberlebt keinen Neustart und keine zweite
- * Instanz. Verschluesselt statt nur signiert, weil das Zugriffstoken darin liegt - signiert
- * waere es fuer jeden lesbar, der das Cookie in die Hand bekommt.
- *
- * <p>Verschluesselt wird mit `jose` (JWE, A256GCM). Eigene Krypto waere hier der falsche Ort
- * zum Sparen.
+ * <p>Fruehere Fassung: die komplette Sitzung (Access-, ID-Token, Kontodaten) verschluesselt in
+ * einem Cookie. Authentik packt ins ID-Token ein Base64-Avatarbild und weitere Claims; das
+ * verschluesselte Cookie wurde dadurch ueber 6 KB gross - Browser verwerfen ein Set-Cookie ab
+ * 4 KB stillschweigend. Die Sitzung landete nie im Browser, jede Seite sah "nicht angemeldet"
+ * und schickte sofort zurueck zur Anmeldung: eine stille Neustart-Schleife ohne jeden Fehler
+ * im Log. Die Sitzungsdaten liegen deshalb serverseitig; der Browser haelt nur die kurze,
+ * von Astro selbst verwaltete Session-ID.
  */
-import { CompactEncrypt, compactDecrypt } from 'jose';
-import { createHash } from 'node:crypto';
-import type { AstroCookies } from 'astro';
-import { config } from './config';
-
-export const SITZUNGS_COOKIE = 'im_sitzung';
-
-/** Kurzlebiges Cookie fuer den Zustand waehrend der Anmeldung (state, nonce, PKCE). */
-export const ANMELDE_COOKIE = 'im_anmeldung';
+import type { AstroSession } from 'astro';
 
 export interface Sitzung {
   accessToken: string;
@@ -39,60 +32,32 @@ export interface Anmeldezustand {
   ziel: string;
 }
 
-/** Der Schluessel muss 32 Byte haben; das Geheimnis darf beliebig lang sein. */
-const schluessel = createHash('sha256').update(config.sessionSecret).digest();
+const SITZUNGS_SCHLUESSEL = 'sitzung';
+const ANMELDE_SCHLUESSEL = 'anmeldung';
 
-async function verschluesseln(inhalt: unknown): Promise<string> {
-  return new CompactEncrypt(new TextEncoder().encode(JSON.stringify(inhalt)))
-    .setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
-    .encrypt(schluessel);
+export async function sitzungSchreiben(session: AstroSession | undefined, sitzung: Sitzung): Promise<void> {
+  session?.set(SITZUNGS_SCHLUESSEL, sitzung, { ttl: 60 * 60 * 12 });
 }
 
-async function entschluesseln<T>(text: string): Promise<T | null> {
-  try {
-    const { plaintext } = await compactDecrypt(text, schluessel);
-    return JSON.parse(new TextDecoder().decode(plaintext)) as T;
-  } catch {
-    // Abgelaufen, manipuliert oder mit einem alten Schluessel erzeugt: als abgemeldet behandeln.
-    return null;
-  }
+export async function sitzungLesen(session: AstroSession | undefined): Promise<Sitzung | null> {
+  return (await session?.get<Sitzung>(SITZUNGS_SCHLUESSEL)) ?? null;
 }
 
-const COOKIE_VORGABEN = {
-  httpOnly: true,
-  sameSite: 'lax',
-  path: '/',
-  secure: process.env.NODE_ENV === 'production',
-} as const;
-
-export async function sitzungSchreiben(cookies: AstroCookies, sitzung: Sitzung): Promise<void> {
-  cookies.set(SITZUNGS_COOKIE, await verschluesseln(sitzung), {
-    ...COOKIE_VORGABEN,
-    maxAge: 60 * 60 * 12,
-  });
+export function sitzungLoeschen(session: AstroSession | undefined): void {
+  session?.delete(SITZUNGS_SCHLUESSEL);
 }
 
-export async function sitzungLesen(cookies: AstroCookies): Promise<Sitzung | null> {
-  const roh = cookies.get(SITZUNGS_COOKIE)?.value;
-  return roh ? entschluesseln<Sitzung>(roh) : null;
+export async function anmeldungSchreiben(
+  session: AstroSession | undefined,
+  zustand: Anmeldezustand,
+): Promise<void> {
+  session?.set(ANMELDE_SCHLUESSEL, zustand, { ttl: 10 * 60 });
 }
 
-export function sitzungLoeschen(cookies: AstroCookies): void {
-  cookies.delete(SITZUNGS_COOKIE, { path: '/' });
+export async function anmeldungLesen(session: AstroSession | undefined): Promise<Anmeldezustand | null> {
+  return (await session?.get<Anmeldezustand>(ANMELDE_SCHLUESSEL)) ?? null;
 }
 
-export async function anmeldungSchreiben(cookies: AstroCookies, zustand: Anmeldezustand): Promise<void> {
-  cookies.set(ANMELDE_COOKIE, await verschluesseln(zustand), {
-    ...COOKIE_VORGABEN,
-    maxAge: 10 * 60,
-  });
-}
-
-export async function anmeldungLesen(cookies: AstroCookies): Promise<Anmeldezustand | null> {
-  const roh = cookies.get(ANMELDE_COOKIE)?.value;
-  return roh ? entschluesseln<Anmeldezustand>(roh) : null;
-}
-
-export function anmeldungLoeschen(cookies: AstroCookies): void {
-  cookies.delete(ANMELDE_COOKIE, { path: '/' });
+export function anmeldungLoeschen(session: AstroSession | undefined): void {
+  session?.delete(ANMELDE_SCHLUESSEL);
 }
