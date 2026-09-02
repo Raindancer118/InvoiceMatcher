@@ -13,7 +13,7 @@
 
     <groupId>de.pegasus.invoicematcher</groupId>
     <artifactId>InvoiceMatcher</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
     <name>InvoiceMatcher</name>
     <description>Belegklassifikation und DATEV-Vorkontierung fuer Eingangs- und Ausgangsrechnungen</description>
 
