@@ -11,7 +11,7 @@ import { sitzungLesen, sitzungSchreiben, type Sitzung } from './lib/session';
 import { tokenErneuern } from './lib/oidc';
 
 /** Seiten, die ohne Anmeldung erreichbar sein muessen. */
-const OFFEN = ['/auth/login', '/auth/callback', '/auth/logout', '/kein-zugriff'];
+const OFFEN = ['/auth/login', '/auth/callback', '/auth/logout', '/kein-zugriff', '/anmeldung-fehlgeschlagen'];
 
 /** Erneuert schon kurz vor Ablauf, damit ein laufender Aufruf nicht mittendrin scheitert. */
 const VORLAUF_SEKUNDEN = 60;
