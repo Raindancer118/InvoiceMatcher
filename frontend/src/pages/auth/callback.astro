@@ -10,7 +10,15 @@ if (!anmeldung) {
   return Astro.redirect('/auth/login');
 }
 
-const ergebnis = await anmeldungAbschliessen(Astro.url, anmeldung);
+let ergebnis;
+try {
+  ergebnis = await anmeldungAbschliessen(Astro.url, anmeldung);
+} catch (fehler) {
+  // Ein abgelehnter oder unerreichbarer Authentik-Aufruf ist kein Programmierfehler der
+  // Anwendung - ohne diesen Fang wuerde Astro daraus einen nackten HTTP-500 machen.
+  console.error('Anmeldung ueber Authentik fehlgeschlagen', fehler);
+  return Astro.redirect('/anmeldung-fehlgeschlagen');
+}
 await sitzungSchreiben(Astro.cookies, {
   accessToken: ergebnis.accessToken,
   refreshToken: ergebnis.refreshToken,

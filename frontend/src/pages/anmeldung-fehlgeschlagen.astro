@@ -1,0 +1,13 @@
+---
+import Grundgeruest from '../layouts/Grundgeruest.astro';
+---
+<Grundgeruest titel="Anmeldung fehlgeschlagen">
+  <h1 class="headline">Die Anmeldung ist fehlgeschlagen.</h1>
+  <p class="sub">
+    Authentik (portal.tstieh.de) hat die Anfrage abgelehnt oder war nicht erreichbar. Das ist in
+    der Regel vorübergehend — probier es noch einmal.
+  </p>
+  <p style="margin-top:2rem">
+    <a class="btn btn-primary" href="/auth/login">Erneut anmelden</a>
+  </p>
+</Grundgeruest>
