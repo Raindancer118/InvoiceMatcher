@@ -9,6 +9,8 @@ import de.pegasus.invoicematcher.rules.IRule;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import java.util.function.Supplier;
+
 /**
  * Bestimmt, ob der Beleg eine Eingangs- oder eine Ausgangsrechnung ist.
  *
@@ -25,9 +27,14 @@ public class DirectionRule implements IRule {
     /** Abschlag, wenn die Richtung nur unterstellt und nicht belegt werden konnte. */
     private static final double UNCERTAIN_DIRECTION_PENALTY = 0.10;
 
-    private final CompanyProperties company;
+    private final Supplier<CompanyProperties> company;
 
-    public DirectionRule(CompanyProperties company) {
+    /**
+     * Nimmt einen Lieferanten statt einer festen {@link CompanyProperties} entgegen: die
+     * Firmendaten sind ueber die Einstellungen-Oberflaeche jederzeit aenderbar, eine einmal
+     * beim Start eingesetzte Instanz wuerde eine Aenderung nie sehen.
+     */
+    public DirectionRule(Supplier<CompanyProperties> company) {
         this.company = company;
     }
 
@@ -43,12 +50,15 @@ public class DirectionRule implements IRule {
 
     @Override
     public void apply(ClassificationContext context) {
+        // Einmal gelesen statt zweimal: die Firmendaten koennen sich waehrend eines laufenden
+        // Klassifikationslaufs aendern, dieselbe Regel soll dann trotzdem konsistent bleiben.
+        CompanyProperties company = this.company.get();
         if (company.matches(context.invoice().seller())) {
             context.direction(Direction.AUSGANG);
             return;
         }
         context.direction(Direction.EINGANG);
-        if (company.matches(context.invoice().buyer()) || mentionsOwnCompany(context)) {
+        if (company.matches(context.invoice().buyer()) || mentionsOwnCompany(context, company)) {
             return;
         }
         context.penalize(UNCERTAIN_DIRECTION_PENALTY, Finding.warn(id(),
@@ -60,7 +70,7 @@ public class DirectionRule implements IRule {
      * Nicht jeder Beleg beschriftet sein Anschriftenfeld. Steht der eigene Firmenname aber
      * ueberhaupt im Dokument und ist nicht der Aussteller, ist es eine Eingangsrechnung.
      */
-    private boolean mentionsOwnCompany(ClassificationContext context) {
+    private boolean mentionsOwnCompany(ClassificationContext context, CompanyProperties company) {
         return MatchingText.contains(context.invoice().rawText(), company.name());
     }
 

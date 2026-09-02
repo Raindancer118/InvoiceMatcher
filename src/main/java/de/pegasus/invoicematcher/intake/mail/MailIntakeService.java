@@ -7,6 +7,8 @@ import de.pegasus.invoicematcher.review.ReviewService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.function.Supplier;
+
 /**
  * Belegannahme aus dem Postfach: jeder brauchbare Anhang geht denselben Weg wie ein Upload.
  *
@@ -21,9 +23,9 @@ public class MailIntakeService {
 
     private final Mailbox mailbox;
     private final ReviewService review;
-    private final MailIntakeProperties properties;
+    private final Supplier<MailIntakeProperties> properties;
 
-    public MailIntakeService(Mailbox mailbox, ReviewService review, MailIntakeProperties properties) {
+    public MailIntakeService(Mailbox mailbox, ReviewService review, Supplier<MailIntakeProperties> properties) {
         this.mailbox = mailbox;
         this.review = review;
         this.properties = properties;
@@ -35,7 +37,7 @@ public class MailIntakeService {
     }
 
     MailResult handle(IncomingMail mail) {
-        if (!properties.accepts(mail.sender())) {
+        if (!properties.get().accepts(mail.sender())) {
             log.warn("Mail von '{}' abgewiesen: der Absender ist nicht zur Einlieferung zugelassen",
                     mail.sender());
             return MailResult.ABGEWIESEN;

@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.util.Properties;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Das Postfach ueber IMAP.
@@ -26,22 +27,26 @@ import java.util.function.Function;
  * <p>Verbindung, Abholung und Ablage liegen in einem einzigen {@link #forEachUnread}-Aufruf.
  * Waere das getrennt, muesste zwischen Abholen und Umlegen eine Nachrichtenkennung ueber eine
  * neue Verbindung wiedergefunden werden - IMAP garantiert das nur innerhalb einer Sitzung.
+ *
+ * <p>Die Einstellungen kommen ueber einen Lieferanten statt eines festen Objekts: sie sind
+ * ueber die Einstellungen-Oberflaeche jederzeit aenderbar, eine Verbindung baut deshalb bei
+ * jedem Durchlauf mit den dann aktuellen Werten auf.
  */
 public class ImapMailbox implements Mailbox {
 
     private static final Logger log = LoggerFactory.getLogger(ImapMailbox.class);
 
-    private final MailIntakeProperties properties;
-    private final MailAttachments attachments;
+    private final Supplier<MailIntakeProperties> properties;
 
-    public ImapMailbox(MailIntakeProperties properties) {
+    public ImapMailbox(Supplier<MailIntakeProperties> properties) {
         this.properties = properties;
-        this.attachments = new MailAttachments(properties.maxAttachmentSize().toBytes());
     }
 
     @Override
     public int forEachUnread(Function<IncomingMail, MailResult> handler) {
-        try (Store store = session().getStore(properties.protocol())) {
+        MailIntakeProperties properties = this.properties.get();
+        MailAttachments attachments = new MailAttachments(properties.maxAttachmentSize().toBytes());
+        try (Store store = session(properties).getStore(properties.protocol())) {
             store.connect(properties.host(), properties.port(), properties.username(), properties.password());
             Folder inbox = store.getFolder(properties.folder());
             if (!inbox.exists()) {
@@ -49,7 +54,7 @@ public class ImapMailbox implements Mailbox {
             }
             inbox.open(Folder.READ_WRITE);
             try {
-                return handleAll(store, inbox, handler);
+                return handleAll(properties, attachments, store, inbox, handler);
             } finally {
                 // expunge: die umgelegten Nachrichten verlassen den Eingang erst hier.
                 inbox.close(true);
@@ -60,8 +65,8 @@ public class ImapMailbox implements Mailbox {
         }
     }
 
-    private int handleAll(Store store, Folder inbox, Function<IncomingMail, MailResult> handler)
-            throws MessagingException {
+    private int handleAll(MailIntakeProperties properties, MailAttachments attachments, Store store, Folder inbox,
+                          Function<IncomingMail, MailResult> handler) throws MessagingException {
         Message[] unread = inbox.search(new FlagTerm(new Flags(Flags.Flag.SEEN), false));
         int count = Math.min(unread.length, properties.maxMessagesPerPoll());
         if (unread.length > count) {
@@ -70,7 +75,7 @@ public class ImapMailbox implements Mailbox {
         }
         for (int i = 0; i < count; i++) {
             Message message = unread[i];
-            file(store, inbox, message, resultFor(message, handler));
+            file(properties, store, inbox, message, resultFor(attachments, message, handler));
         }
         return count;
     }
@@ -79,16 +84,17 @@ public class ImapMailbox implements Mailbox {
      * Ein Anhang, der sich nicht einmal lesen laesst, kommt gar nicht erst beim Bearbeiter an -
      * die Nachricht gilt dann als fehlgeschlagen und bleibt sichtbar.
      */
-    private MailResult resultFor(Message message, Function<IncomingMail, MailResult> handler) {
+    private MailResult resultFor(MailAttachments attachments, Message message,
+                                 Function<IncomingMail, MailResult> handler) {
         try {
-            return handler.apply(toIncomingMail(message));
+            return handler.apply(toIncomingMail(attachments, message));
         } catch (MailIntakeException | MessagingException e) {
             log.error("Nachricht konnte nicht gelesen werden: {}", e.getMessage());
             return MailResult.FEHLGESCHLAGEN;
         }
     }
 
-    private IncomingMail toIncomingMail(Message message) throws MessagingException {
+    private IncomingMail toIncomingMail(MailAttachments attachments, Message message) throws MessagingException {
         String messageId = message instanceof MimeMessage mime && mime.getMessageID() != null
                 ? mime.getMessageID()
                 : "ohne-message-id-" + message.getMessageNumber();
@@ -109,7 +115,8 @@ public class ImapMailbox implements Mailbox {
      * Eingang: sie ein zweites Mal zu verarbeiten waere schlimmer als sie am falschen Ort zu
      * haben.
      */
-    private void file(Store store, Folder inbox, Message message, MailResult result) {
+    private void file(MailIntakeProperties properties, Store store, Folder inbox, Message message,
+                      MailResult result) {
         String targetName = result.isProcessed() ? properties.processedFolder() : properties.failedFolder();
         try {
             message.setFlag(Flags.Flag.SEEN, true);
@@ -128,7 +135,7 @@ public class ImapMailbox implements Mailbox {
         }
     }
 
-    private Session session() {
+    private Session session(MailIntakeProperties properties) {
         Properties config = new Properties();
         config.put("mail.store.protocol", properties.protocol());
         config.put("mail." + properties.protocol() + ".host", properties.host());
@@ -143,8 +150,9 @@ public class ImapMailbox implements Mailbox {
         return Session.getInstance(config);
     }
 
-    /** Nur zur Protokollspur beim Start. */
+    /** Nur zur Protokollspur, immer mit den aktuell gueltigen Einstellungen. */
     public String describe() {
+        MailIntakeProperties properties = this.properties.get();
         return properties.username() + "@" + properties.host() + ":" + properties.port()
                 + " (" + properties.protocol() + ", Ordner " + properties.folder() + ")";
     }

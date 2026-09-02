@@ -92,7 +92,7 @@ public final class Kontierung {
         AccountingProperties accounting = accountingProperties();
         return new RuleEngine(List.of(
                 new InvoiceTitleRule(),
-                new DirectionRule(companyProperties()),
+                new DirectionRule(Kontierung::companyProperties),
                 new MandatoryFieldsRule(),
                 new ArithmeticRule(accounting),
                 new FixedAssetRule(standardFixedAssetIndicator(), accounting),

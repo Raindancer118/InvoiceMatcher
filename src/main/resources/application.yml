@@ -38,11 +38,19 @@ logging:
 
 invoicematcher:
 
-  # Das eigene Unternehmen - daraus leitet sich die Belegrichtung ab.
+  # Das eigene Unternehmen - daraus leitet sich die Belegrichtung ab. Nur Vorgabewert fuer den
+  # allerersten Start (SettingsSeeder): danach ist die Einstellungen-Ablage massgeblich, siehe
+  # CompanySettingsService.
   company:
     name: "Muster zu Testzwecken GmbH"
     vat-id: "DE 815000010"
     tax-number: "24112345678"
+
+  # Schluessel zur Verschluesselung des Postfach-Passworts in der Einstellungen-Ablage
+  # (SecretCipher). Kein Vorgabewert: ohne INVOICEMATCHER_SETTINGS_KEY soll der Start scheitern,
+  # nicht mit einem Platzhalter-Schluessel weiterlaufen.
+  settings:
+    key: ${INVOICEMATCHER_SETTINGS_KEY}
 
   # Absicherung der API gegen Authentik (portal.tstieh.de).
   # Ohne issuer-uri laeuft die Anwendung OHNE Anmeldung - nur fuer lokale Entwicklung.

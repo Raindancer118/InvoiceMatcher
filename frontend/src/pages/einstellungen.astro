@@ -1,0 +1,140 @@
+---
+import Grundgeruest from '../layouts/Grundgeruest.astro';
+import { api } from '../lib/api';
+
+const { sitzung } = Astro.locals;
+const meldung = Astro.url.searchParams.get('meldung');
+
+const firma = await api.firma(sitzung.accessToken);
+const mail = await api.mailEingang(sitzung.accessToken);
+---
+<Grundgeruest titel="Einstellungen" benutzer={sitzung.benutzer.name} aktiv="einstellungen">
+  <div class="abschnitt">
+    <h2>Einstellungen</h2>
+  </div>
+
+  {meldung && <p class="meldung">{meldung}</p>}
+
+  <div class="karte">
+    <h3>Firma</h3>
+    <div class="inhalt">
+      <p class="sub" style="max-width:60ch">
+        Entscheidet, ob ein Beleg als Eingangs- oder Ausgangsrechnung gilt.
+      </p>
+      <form method="post" action="/einstellungen/firma" class="formular">
+        <label class="feld">
+          <span>Name</span>
+          <input type="text" name="name" value={firma.name} required />
+        </label>
+        <label class="feld">
+          <span>USt-IdNr.</span>
+          <input type="text" name="ustIdNr" value={firma.ustIdNr ?? ''} />
+        </label>
+        <label class="feld">
+          <span>Steuernummer</span>
+          <input type="text" name="steuernummer" value={firma.steuernummer ?? ''} />
+        </label>
+        <button class="btn btn-primary" type="submit">Speichern</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="karte">
+    <h3>Belegannahme per Mail</h3>
+    <div class="inhalt">
+      <p class="sub" style="max-width:60ch">
+        Anhänge aus diesem Postfach werden wie ein Upload eingereicht. Ein leeres Passwortfeld
+        lässt das gespeicherte Passwort unverändert.
+      </p>
+      <form method="post" action="/einstellungen/mail-eingang" class="formular">
+        <label class="feld feld-kasten">
+          <input type="checkbox" name="aktiv" checked={mail.aktiv} />
+          <span>Belegannahme per Mail aktiv</span>
+        </label>
+        <label class="feld">
+          <span>Protokoll</span>
+          <select name="protokoll">
+            <option value="imaps" selected={mail.protokoll === 'imaps'}>imaps</option>
+            <option value="imap" selected={mail.protokoll === 'imap'}>imap</option>
+          </select>
+        </label>
+        <label class="feld">
+          <span>Server</span>
+          <input type="text" name="host" value={mail.host} />
+        </label>
+        <label class="feld">
+          <span>Port</span>
+          <input type="number" name="port" min="1" max="65535" value={mail.port} required />
+        </label>
+        <label class="feld">
+          <span>Benutzername</span>
+          <input type="text" name="benutzername" value={mail.benutzername} />
+        </label>
+        <label class="feld">
+          <span>Passwort</span>
+          <input
+            type="password"
+            name="passwort"
+            placeholder={mail.passwortGesetzt ? 'Unverändert lassen' : 'Kein Passwort gesetzt'}
+            autocomplete="new-password"
+          />
+        </label>
+        <label class="feld">
+          <span>Ordner</span>
+          <input type="text" name="ordner" value={mail.ordner} />
+        </label>
+        <label class="feld">
+          <span>Ordner für verarbeitete Mails</span>
+          <input type="text" name="verarbeitetOrdner" value={mail.verarbeitetOrdner} />
+        </label>
+        <label class="feld">
+          <span>Ordner für fehlgeschlagene Mails</span>
+          <input type="text" name="fehlgeschlagenOrdner" value={mail.fehlgeschlagenOrdner} />
+        </label>
+        <label class="feld">
+          <span>Takt (Sekunden)</span>
+          <input type="number" name="taktSekunden" min="1" value={mail.taktSekunden} required />
+        </label>
+        <label class="feld">
+          <span>Max. Nachrichten je Durchlauf</span>
+          <input
+            type="number"
+            name="maxNachrichtenProDurchlauf"
+            min="1"
+            value={mail.maxNachrichtenProDurchlauf}
+            required
+          />
+        </label>
+        <label class="feld">
+          <span>Max. Anhanggröße (KB)</span>
+          <input
+            type="number"
+            name="maxAnhangGroesseKb"
+            min="1"
+            value={mail.maxAnhangGroesseKb}
+            required
+          />
+        </label>
+        <label class="feld">
+          <span>Erlaubte Absender (Komma-getrennt, leer = alle)</span>
+          <input type="text" name="erlaubteAbsender" value={mail.erlaubteAbsender.join(', ')} />
+        </label>
+        <button class="btn btn-primary" type="submit">Speichern</button>
+      </form>
+    </div>
+  </div>
+</Grundgeruest>
+
+<style>
+  .formular { display: flex; flex-direction: column; gap: .9rem; max-width: 32rem; }
+  .feld { display: flex; flex-direction: column; gap: .3rem; font-size: .88rem; }
+  .feld span { color: var(--text-2); font-weight: 600; }
+  .feld input, .feld select {
+    font: inherit; color: var(--text); background: var(--surface-page);
+    border: 1px solid var(--border-strong); border-radius: var(--r-md); padding: .5rem .7rem;
+  }
+  .feld input:focus, .feld select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .feld-kasten { flex-direction: row; align-items: center; gap: .6rem; }
+  .feld-kasten input { width: auto; }
+  .formular .btn { align-self: flex-start; }
+</style>

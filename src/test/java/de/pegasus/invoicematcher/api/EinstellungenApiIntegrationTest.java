@@ -1,0 +1,142 @@
+package de.pegasus.invoicematcher.api;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
+
+import java.nio.file.Path;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+/**
+ * Firmendaten und Mail-Eingang ueber die REST-Schnittstelle - vorher nur per .env und Neustart
+ * aenderbar.
+ */
+@SpringBootTest
+@ActiveProfiles("test")
+@DisplayName("Einstellungen-API")
+class EinstellungenApiIntegrationTest {
+
+    @org.junit.jupiter.api.io.TempDir
+    static Path ablage;
+
+    @DynamicPropertySource
+    static void ablageEinrichten(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", () -> "jdbc:sqlite:" + ablage.resolve("test.db"));
+    }
+
+    private final MockMvc mockMvc;
+
+    @Autowired
+    EinstellungenApiIntegrationTest(WebApplicationContext context) {
+        this.mockMvc = MockMvcBuilders.webAppContextSetup(context).build();
+    }
+
+    @Test
+    void firmaStartsWithTheSeededDefaultsFromApplicationYml() throws Exception {
+        mockMvc.perform(get("/api/v1/einstellungen/firma"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Muster zu Testzwecken GmbH"));
+    }
+
+    @Test
+    void savedCompanySettingsAreReturnedOnTheNextRead() throws Exception {
+        mockMvc.perform(put("/api/v1/einstellungen/firma")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"name": "Echtes Unternehmen GmbH", "ustIdNr": "DE123456789", "steuernummer": "1"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Echtes Unternehmen GmbH"));
+
+        mockMvc.perform(get("/api/v1/einstellungen/firma"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Echtes Unternehmen GmbH"))
+                .andExpect(jsonPath("$.ustIdNr").value("DE123456789"));
+    }
+
+    @Test
+    void aBlankCompanyNameIsRejected() throws Exception {
+        mockMvc.perform(put("/api/v1/einstellungen/firma")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\": \"\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void mailIntakeSettingsNeverExposeThePasswordItself() throws Exception {
+        mockMvc.perform(put("/api/v1/einstellungen/mail-eingang")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "aktiv": true, "protokoll": "imaps", "host": "mx.example",
+                                  "port": 993, "benutzername": "belege@example.de",
+                                  "passwort": "geheimes-passwort",
+                                  "ordner": "INBOX", "verarbeitetOrdner": "Verarbeitet",
+                                  "fehlgeschlagenOrdner": "Fehlgeschlagen", "taktSekunden": 300,
+                                  "maxNachrichtenProDurchlauf": 50, "maxAnhangGroesseKb": 20000,
+                                  "erlaubteAbsender": ["@example.de"]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.passwortGesetzt").value(true))
+                .andExpect(jsonPath("$..passwort").doesNotExist());
+
+        mockMvc.perform(get("/api/v1/einstellungen/mail-eingang"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.passwortGesetzt").value(true))
+                .andExpect(jsonPath("$.host").value("mx.example"))
+                .andExpect(jsonPath("$..passwort").doesNotExist());
+    }
+
+    @Test
+    void anEmptyPasswordOnUpdateKeepsTheExistingOne() throws Exception {
+        String mitPasswort = """
+                {
+                  "aktiv": true, "protokoll": "imaps", "host": "mx.example",
+                  "port": 993, "benutzername": "belege@example.de",
+                  "passwort": "erstes-passwort",
+                  "ordner": "INBOX", "verarbeitetOrdner": "Verarbeitet",
+                  "fehlgeschlagenOrdner": "Fehlgeschlagen", "taktSekunden": 300,
+                  "maxNachrichtenProDurchlauf": 50, "maxAnhangGroesseKb": 20000,
+                  "erlaubteAbsender": ["@example.de"]
+                }
+                """;
+        mockMvc.perform(put("/api/v1/einstellungen/mail-eingang")
+                        .contentType(MediaType.APPLICATION_JSON).content(mitPasswort))
+                .andExpect(status().isOk());
+
+        String ohnePasswort = mitPasswort.replace("\"passwort\": \"erstes-passwort\",", "\"passwort\": \"\",");
+        mockMvc.perform(put("/api/v1/einstellungen/mail-eingang")
+                        .contentType(MediaType.APPLICATION_JSON).content(ohnePasswort))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.passwortGesetzt").value(true));
+    }
+
+    @Test
+    void anInvalidPortIsRejected() throws Exception {
+        mockMvc.perform(put("/api/v1/einstellungen/mail-eingang")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "aktiv": false, "protokoll": "imaps", "host": "mx.example",
+                                  "port": 70000, "benutzername": "belege@example.de",
+                                  "ordner": "INBOX", "verarbeitetOrdner": "Verarbeitet",
+                                  "fehlgeschlagenOrdner": "Fehlgeschlagen", "taktSekunden": 300,
+                                  "maxNachrichtenProDurchlauf": 50, "maxAnhangGroesseKb": 20000
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+}

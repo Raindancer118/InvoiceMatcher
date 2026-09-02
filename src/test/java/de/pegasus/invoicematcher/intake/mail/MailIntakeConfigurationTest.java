@@ -1,9 +1,6 @@
 package de.pegasus.invoicematcher.intake.mail;
 
-import de.pegasus.invoicematcher.config.MailIntakeConfiguration;
 import de.pegasus.invoicematcher.config.MailIntakeProperties;
-import de.pegasus.invoicematcher.review.ReviewService;
-import de.pegasus.invoicematcher.support.Kontierung;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.context.ConfigurationPropertiesAutoConfiguration;
@@ -14,27 +11,21 @@ import java.time.Duration;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Die Verdrahtung der Belegannahme per Mail - Schalter und Bindung der Einstellungen.
+ * Die Bindung von {@link MailIntakeProperties} aus der Umgebung - der Vorgabewert fuer den
+ * allerersten Start (siehe {@link de.pegasus.invoicematcher.config.SettingsSeeder}).
  *
- * <p>Beides faellt sonst erst im Betrieb auf: ein falsch geschriebener Zeitraum oder eine
- * Groessenangabe bricht den Anwendungsstart, und zwar auf dem Server, nicht hier.
+ * <p>Ein falsch geschriebener Zeitraum oder eine Groessenangabe faellt sonst erst im Betrieb
+ * auf, und zwar auf dem Server, nicht hier. Die Beans der Belegannahme selbst haengen seit der
+ * Einstellungen-Oberflaeche nicht mehr an einem Schalter in dieser Konfiguration - sie existieren
+ * immer, aktiv ist die Annahme ueber {@link de.pegasus.invoicematcher.config.MailIntakeSettingsService}.
  */
 class MailIntakeConfigurationTest {
 
     @Test
-    void withoutTheSwitchNothingIsWiredUp() {
-        new ApplicationContextRunner()
-                .withUserConfiguration(MailIntakeConfiguration.class)
-                .withBean(ReviewService.class, () -> Kontierung.standardWorkflow().review())
-                .run(context -> assertThat(context).doesNotHaveBean(MailIntakeService.class));
-    }
-
-    @Test
-    void theConfiguredMailboxIsBoundIncludingDurationsAndSizes() {
+    void theConfiguredPropertiesBindIncludingDurationsAndSizes() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(ConfigurationPropertiesAutoConfiguration.class))
-                .withUserConfiguration(MailIntakeConfiguration.class, PropertiesHolder.class)
-                .withBean(ReviewService.class, () -> Kontierung.standardWorkflow().review())
+                .withUserConfiguration(PropertiesHolder.class)
                 .withPropertyValues(
                         "invoicematcher.intake.mail.enabled=true",
                         "invoicematcher.intake.mail.host=mx.example",
@@ -44,8 +35,6 @@ class MailIntakeConfigurationTest {
                         "invoicematcher.intake.mail.max-attachment-size=5MB",
                         "invoicematcher.intake.mail.allowed-senders[0]=@example.de")
                 .run(context -> {
-                    assertThat(context).hasSingleBean(MailIntakeService.class);
-                    assertThat(context).hasSingleBean(MailIntakeScheduler.class);
                     MailIntakeProperties properties = context.getBean(MailIntakeProperties.class);
                     assertThat(properties.protocol()).isEqualTo("imaps");
                     assertThat(properties.port()).isEqualTo(993);
@@ -77,8 +66,7 @@ class MailIntakeConfigurationTest {
     private ApplicationContextRunner binding(String... properties) {
         return new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(ConfigurationPropertiesAutoConfiguration.class))
-                .withUserConfiguration(MailIntakeConfiguration.class, PropertiesHolder.class)
-                .withBean(ReviewService.class, () -> Kontierung.standardWorkflow().review())
+                .withUserConfiguration(PropertiesHolder.class)
                 .withPropertyValues("invoicematcher.intake.mail.enabled=true",
                         "invoicematcher.intake.mail.host=mx.example")
                 .withPropertyValues(properties);

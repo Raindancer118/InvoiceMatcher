@@ -32,7 +32,8 @@ class MailIntakeServiceTest {
     private final FakeMailbox mailbox = new FakeMailbox();
 
     private MailIntakeService service(String... allowedSenders) {
-        return new MailIntakeService(mailbox, review, properties(List.of(allowedSenders)));
+        MailIntakeProperties properties = properties(List.of(allowedSenders));
+        return new MailIntakeService(mailbox, review, () -> properties);
     }
 
     private static MailIntakeProperties properties(List<String> allowedSenders) {

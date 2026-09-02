@@ -10,6 +10,8 @@ services:
       - invoicematcher-data:/data
     environment:
       INVOICEMATCHER_DB: "/data/invoicematcher.db"
+      # Verschluesselt das Postfach-Passwort in der Einstellungen-Ablage (SecretCipher).
+      INVOICEMATCHER_SETTINGS_KEY: "${SETTINGS_ENCRYPTION_KEY:?SETTINGS_ENCRYPTION_KEY fehlt - openssl rand -base64 32}"
       # Eigenes Unternehmen und Kontierungsrahmen kommen aus der application.yml,
       # betriebsspezifische Werte werden hier ueberschrieben.
       INVOICEMATCHER_COMPANY_NAME: "${COMPANY_NAME:-Muster zu Testzwecken GmbH}"

@@ -1,0 +1,6 @@
+# Nur fuer @SpringBootTest-Klassen (Profil 'test'): der Produktivbetrieb verlangt einen echten,
+# selbst erzeugten Schluessel (INVOICEMATCHER_SETTINGS_KEY, siehe compose.yaml) und darf keinen
+# Vorgabewert im Repository haben, sonst waere die Verschluesselung wirkungslos.
+invoicematcher:
+  settings:
+    key: "0ZBC4pOTYmiUlG2fb70V3DTAbQtmQyUDEU6sMDLCpH4="

@@ -1,0 +1,39 @@
+package de.pegasus.invoicematcher.config;
+
+import de.pegasus.invoicematcher.persistence.SettingsRepository;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.stereotype.Component;
+
+/**
+ * Fuellt die Einstellungen-Ablage genau einmal aus den bisherigen {@code application.yml}/
+ * Umgebungsvariablen-Werten - danach ist die Datenbank die Wahrheit, nicht mehr die Umgebung.
+ *
+ * <p>Laeuft erst, wenn das Schema steht ({@code spring.sql.init.mode: always} ist beim
+ * Application-Start bereits durchgelaufen). Eine bereits befuellte Tabelle bleibt unangetastet -
+ * sonst wuerde jeder Neustart eine ueber die Oberflaeche vorgenommene Aenderung wieder verwerfen.
+ */
+@Component
+public class SettingsSeeder implements ApplicationRunner {
+
+    private final SettingsRepository repository;
+    private final CompanyProperties companyVorgabewerte;
+    private final MailIntakeProperties mailVorgabewerte;
+
+    public SettingsSeeder(SettingsRepository repository, CompanyProperties companyVorgabewerte,
+                          MailIntakeProperties mailVorgabewerte) {
+        this.repository = repository;
+        this.companyVorgabewerte = companyVorgabewerte;
+        this.mailVorgabewerte = mailVorgabewerte;
+    }
+
+    @Override
+    public void run(ApplicationArguments args) {
+        if (repository.loadCompany().isEmpty()) {
+            repository.saveCompany(companyVorgabewerte);
+        }
+        if (repository.loadMailIntake().isEmpty()) {
+            repository.saveMailIntake(mailVorgabewerte);
+        }
+    }
+}

@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -41,6 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         // Der Takt darf im Test nicht selbst zuschlagen; abgeholt wird von Hand.
         "invoicematcher.intake.mail.poll-interval=1h"
 })
+@ActiveProfiles("test")
 class MailIntakeApplicationTest {
 
     private static final String POSTFACH = "belege@invoicematcher.test";

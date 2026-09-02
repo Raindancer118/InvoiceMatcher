@@ -52,7 +52,7 @@ class ImapMailIntakeTest {
         MailIntakeProperties properties = new MailIntakeProperties(true, "imap", "127.0.0.1",
                 GREEN_MAIL.getImap().getPort(), POSTFACH, PASSWORT,
                 "INBOX", "Verarbeitet", "Fehlgeschlagen", null, 0, null, List.of());
-        service = new MailIntakeService(new ImapMailbox(properties), review, properties);
+        service = new MailIntakeService(new ImapMailbox(() -> properties), review, () -> properties);
     }
 
     @Test

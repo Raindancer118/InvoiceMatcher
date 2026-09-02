@@ -60,6 +60,33 @@ export interface Vorgang {
   exportiertAm: string | null;
 }
 
+export interface Firma {
+  name: string;
+  ustIdNr: string | null;
+  steuernummer: string | null;
+}
+
+export interface MailEingang {
+  aktiv: boolean;
+  protokoll: string;
+  host: string;
+  port: number;
+  benutzername: string;
+  passwortGesetzt: boolean;
+  ordner: string;
+  verarbeitetOrdner: string;
+  fehlgeschlagenOrdner: string;
+  taktSekunden: number;
+  maxNachrichtenProDurchlauf: number;
+  maxAnhangGroesseKb: number;
+  erlaubteAbsender: string[];
+}
+
+/** Wie {@link MailEingang}, aber mit dem Passwort zum Speichern statt dem Gesetzt-Merker. */
+export interface MailEingangEingabe extends Omit<MailEingang, 'passwortGesetzt'> {
+  passwort: string;
+}
+
 export class ApiFehler extends Error {
   constructor(readonly status: number, message: string) {
     super(message);
@@ -132,5 +159,23 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{}',
+    }),
+
+  firma: (token: string) => json<Firma>('/api/v1/einstellungen/firma', token),
+
+  firmaSpeichern: (token: string, firma: Firma) =>
+    json<Firma>('/api/v1/einstellungen/firma', token, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(firma),
+    }),
+
+  mailEingang: (token: string) => json<MailEingang>('/api/v1/einstellungen/mail-eingang', token),
+
+  mailEingangSpeichern: (token: string, mail: MailEingangEingabe) =>
+    json<MailEingang>('/api/v1/einstellungen/mail-eingang', token, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(mail),
     }),
 };
