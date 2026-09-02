@@ -63,7 +63,13 @@ export async function anmeldungAbschliessen(
   erwartet: { state: string; nonce: string; codeVerifier: string },
 ): Promise<Anmeldeergebnis> {
   const konfig = await herausgeber();
-  const token = await client.authorizationCodeGrant(konfig, aufrufUrl, {
+  // openid-client leitet die 'redirect_uri' fuer den Token-Request aus dem Schema/Host der
+  // uebergebenen URL ab. Hinter dem Reverse Proxy sieht Astro das Original-Schema (https) nicht
+  // zuverlaessig - ohne Korrektur wuerde ein 'http://...' gesendet, das nicht zur bei Authentik
+  // registrierten Redirect-URI passt und der Token-Austausch schlaegt fehl.
+  const korrigierteUrl = new URL(config.oidc.redirectUri);
+  korrigierteUrl.search = aufrufUrl.search;
+  const token = await client.authorizationCodeGrant(konfig, korrigierteUrl, {
     pkceCodeVerifier: erwartet.codeVerifier,
     expectedState: erwartet.state,
     expectedNonce: erwartet.nonce,
