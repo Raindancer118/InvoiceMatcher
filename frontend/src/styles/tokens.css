@@ -105,16 +105,17 @@ p { overflow-wrap:anywhere; }
 .karte > h3 { padding:1rem 1.2rem; border-bottom:1px solid var(--border); }
 .inhalt { padding:1.2rem; }
 .meldung { background:var(--amber-bg); color:var(--text); border-left:4px solid var(--amber); padding:1rem 1.2rem; margin:0 0 1.5rem; }
-.workbench { display:grid; grid-template-columns:var(--schiene) minmax(0,1fr) minmax(380px,460px); align-items:stretch; min-height:calc(100dvh - 72px); }
-.queue { background:var(--archive); color:#fffef9; padding:1.25rem; min-width:0; }
-.queue-head { display:flex; flex-wrap:wrap; align-items:baseline; gap:.5rem; margin-bottom:1.5rem; }
+.workbench { display:grid; grid-template-columns:var(--schiene) minmax(0,1fr) minmax(380px,460px); align-items:stretch; height:calc(100dvh - 72px); overflow:hidden; }
+.queue { background:var(--archive); color:#fffef9; padding:1.25rem; min-width:0; min-height:0; display:flex; flex-direction:column; }
+.queue-head { flex:none; display:flex; flex-wrap:wrap; align-items:baseline; gap:.5rem; margin-bottom:1.5rem; }
 .queue-head h1 { font-size:1.8rem; }
 .queue-head > span { font:11px var(--font-data); color:#b9cec4; }
-.queue-filters { display:flex; flex-wrap:wrap; gap:.3rem; margin-bottom:1rem; }
+.queue-filters { flex:none; display:flex; flex-wrap:wrap; gap:.3rem; margin-bottom:1rem; }
 .queue-filters a { display:flex; align-items:center; min-height:48px; padding:.5rem .7rem; border:1px solid #547567; color:#fffef9; font-size:.8rem; text-decoration:none; }
 .queue-filters a[aria-current] { background:var(--approve); border-color:var(--approve); color:var(--text); }
-.queue > a { color:var(--approve); display:inline-block; margin-bottom:1rem; font-size:.85rem; }
-.queue-list { list-style:none; padding:0; margin:0; max-height:72vh; overflow-y:auto; }
+.queue > a { flex:none; color:var(--approve); display:inline-block; margin-bottom:1rem; font-size:.85rem; }
+/* Eigener Scrollbereich: die Warteschlange blaettert unabhaengig von PDF-Vorschau und Belegdaten. */
+.queue-list { list-style:none; padding:0; margin:0; flex:1; min-height:0; overflow-y:auto; }
 .queue-item { display:block; padding:1rem .8rem; border-top:1px solid #47665b; color:#fffef9; text-decoration:none; overflow-wrap:anywhere; }
 .queue-item:hover { background:#235346; }
 .queue-item[aria-current] { background:var(--surface-card); color:var(--text); border-left:4px solid #f05a38; }
@@ -123,9 +124,10 @@ p { overflow-wrap:anywhere; }
 .queue-item .queue-meta { display:flex; justify-content:space-between; gap:.5rem; font:11px var(--font-data); margin-top:.6rem; }
 .detail { display:contents; }
 .detail > * { min-width:0; }
-.belegbild { background:var(--surface-page); border-right:1px solid var(--border-strong); min-width:0; overflow:hidden; }
-.belegbild .kopf { background:var(--surface-card); }
-.review { min-width:0; background:var(--surface-card); }
+.belegbild { background:var(--surface-page); border-right:1px solid var(--border-strong); min-width:0; min-height:0; overflow:hidden; display:flex; flex-direction:column; }
+.belegbild .kopf { background:var(--surface-card); flex:none; }
+/* Eigener Scrollbereich fuer die Belegdaten, unabhaengig von der PDF-Vorschau daneben. */
+.review { min-width:0; min-height:0; background:var(--surface-card); overflow-y:auto; }
 .review-header { position:relative; padding:1.5rem; border-bottom:1px solid var(--border); }
 .review-header h2 { padding-right:4rem; font-size:1.65rem; }
 .review-score { position:absolute; top:1.5rem; right:1.2rem; font:700 1.1rem var(--font-data); }
@@ -134,11 +136,12 @@ p { overflow-wrap:anywhere; }
 .review .karte + .karte { margin:0; }
 .review .karte > h3 { font-size:1rem; text-transform:uppercase; letter-spacing:.06em; padding-bottom:.5rem; }
 .review .aktionen { position:sticky; bottom:0; margin:0; z-index:2; }
-.workbench-empty { grid-column:2/-1; padding:3rem; }
+.workbench-empty { grid-column:2/-1; padding:3rem; min-height:0; overflow-y:auto; }
 .belegbild .kopf { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.5rem; padding:1rem; border-bottom:1px solid var(--border); font-size:.8rem; overflow-wrap:anywhere; }
-.belegbild .flaeche { min-height:400px; padding:2rem; display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--surface-sunken); color:var(--text-2); text-align:center; }
-.belegbild .pdf { display:block; width:100%; height:75vh; min-height:500px; border:0; }
-.xml-original { white-space:pre-wrap; overflow-wrap:anywhere; max-height:75vh; overflow:auto; padding:1.2rem; margin:0; font:12px/1.7 var(--font-data); }
+/* Alle drei Belegansichten (Bild-Ersatz, PDF, XML) nutzen die volle verbleibende Hoehe unter dem Kopf. */
+.belegbild .flaeche { flex:1; min-height:0; padding:2rem; display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--surface-sunken); color:var(--text-2); text-align:center; }
+.belegbild .pdf { display:block; width:100%; flex:1; min-height:0; border:0; }
+.xml-original { flex:1; min-height:0; white-space:pre-wrap; overflow-wrap:anywhere; overflow:auto; padding:1.2rem; margin:0; font:12px/1.7 var(--font-data); }
 .hinweis { display:flex; gap:.8rem; padding:.8rem 0; border-bottom:1px solid var(--border); }
 .hinweis:first-child { padding-top:0; } .hinweis:last-child { border:0; padding-bottom:0; }
 .hinweis p { margin:0; font-size:.88rem; }
@@ -188,11 +191,16 @@ p { overflow-wrap:anywhere; }
   .hero { grid-template-columns:1fr; gap:1.5rem; } .export-layout { grid-template-columns:1fr; }
   .settings-layout { grid-template-columns:1fr; } .settings-nav { position:static; flex-direction:row; }
   .overview-grid { grid-template-columns:1fr; }
-  .workbench { grid-template-columns:var(--schiene) minmax(0,1fr); } .queue { grid-row:span 2; } .review { grid-column:2; }
+  /* Ab hier stapeln sich die Spalten (Kopfzeile umgebrochen, Warteschlange ueber den Belegdaten) -
+     dafuer reicht eine Bildschirmhoehe nicht mehr; die Seite darf hier wieder ganz scrollen. */
+  .workbench { grid-template-columns:var(--schiene) minmax(0,1fr); height:auto; min-height:calc(100dvh - 72px); overflow:visible; }
+  .queue { grid-row:span 2; max-height:60vh; }
+  .review { grid-column:2; overflow-y:visible; }
+  .belegbild .pdf,.xml-original,.belegbild .flaeche { flex:none; height:70vh; }
 }
 @media(max-width:650px) {
   .wrap { padding:1rem; } .wrap.breit { padding:0; } .workbench { grid-template-columns:1fr; }
-  .queue { grid-row:auto; } .review,.workbench-empty { grid-column:1; }
+  .queue { grid-row:auto; max-height:none; } .review,.workbench-empty { grid-column:1; }
   .queue-list { display:flex; max-height:none; overflow-x:auto; } .queue-list li { flex:0 0 210px; }
   .stats { grid-template-columns:1fr 1fr; } .stat { padding:1rem; }
   .topnav a { padding:.8rem; font-size:.95rem; } .user { margin-right:1rem; } .user summary > span:last-child { display:none; }

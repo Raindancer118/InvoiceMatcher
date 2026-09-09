@@ -4,9 +4,15 @@ import { sitzungLesen } from '../lib/session';
 import { config } from '../lib/config';
 
 const sitzung = await sitzungLesen(Astro.session);
+// Diese Seite steht in der Middleware in der offenen Liste (sonst koennte ein abgelehntes
+// Konto sie nie erreichen). Ohne jede Sitzung ist sie aber kein gueltiges Ziel - dann fehlt
+// nicht nur die Gruppe, sondern die Anmeldung selbst, und es geht direkt zum Login.
+if (!sitzung) {
+  return Astro.redirect('/auth/login?ziel=' + encodeURIComponent(Astro.url.pathname));
+}
 ---
-<Grundgeruest titel="Kein Zugriff" benutzer={sitzung?.benutzer.name}>
-  <p class="greeting">Angemeldet als <strong>{sitzung?.benutzer.name ?? 'unbekannt'}</strong>.</p>
+<Grundgeruest titel="Kein Zugriff" benutzer={sitzung.benutzer.name}>
+  <p class="greeting">Angemeldet als <strong>{sitzung.benutzer.name}</strong>.</p>
   <h1 class="headline">Dein Konto ist für den InvoiceMatcher nicht freigeschaltet.</h1>
   <p class="sub">
     Es fehlt die Gruppe <code>{config.requiredGroup}</code>. Wer sie vergeben darf, weiß die
