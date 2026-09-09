@@ -8,8 +8,12 @@
 import type { APIRoute } from 'astro';
 import { api, ApiFehler } from '../../../lib/api';
 
-export const POST: APIRoute = async ({ params, request, locals, redirect }) => {
+export const POST: APIRoute = async ({ params, request, locals, redirect, url }) => {
   const id = params.id!;
+  const angefragt = url.searchParams.get('zustand') ?? 'alle';
+  const filter = ['alle', 'offen', 'freigegeben', 'uebergeben', 'abgelehnt'].includes(angefragt) ? angefragt : 'alle';
+  const ziel = (id: string, meldung: string) =>
+    `/pruefliste?zustand=${filter}&id=${encodeURIComponent(id)}&meldung=${encodeURIComponent(meldung)}`;
   const formular = await request.formData();
   const entscheidung = formular.get('entscheidung');
   const benutzer = locals.sitzung.benutzer.name;
@@ -38,6 +42,3 @@ export const POST: APIRoute = async ({ params, request, locals, redirect }) => {
     throw fehler;
   }
 };
-
-const ziel = (id: string, meldung: string) =>
-  `/vorgang/${encodeURIComponent(id)}?meldung=${encodeURIComponent(meldung)}`;

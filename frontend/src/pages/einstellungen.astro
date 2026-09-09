@@ -9,14 +9,14 @@ const firma = await api.firma(sitzung.accessToken);
 const mail = await api.mailEingang(sitzung.accessToken);
 ---
 <Grundgeruest titel="Einstellungen" benutzer={sitzung.benutzer.name} aktiv="einstellungen">
-  <div class="abschnitt">
-    <div><p class="eyebrow">Dein Arbeitsplatz</p><h1>Einstellungen</h1></div>
-  </div>
-
   {meldung && <p class="meldung" role="status">{meldung}</p>}
 
   <div class="settings-layout">
-  <nav class="settings-nav" aria-label="Einstellungsbereiche"><a href="#firma">Firma</a><a href="#mail">Mail-Eingang</a></nav>
+  <aside class="settings-aside">
+    <h1>Einstellungen</h1>
+    <p>Firmendaten steuern die Belegart. Das Postfach nimmt Anhänge automatisch in denselben Prüfablauf auf.</p>
+    <nav class="settings-nav" aria-label="Einstellungsbereiche"><a href="#firma">Firma</a><a href="#mail">Mail-Eingang</a></nav>
+  </aside>
   <div>
   <div class="karte" id="firma">
     <h3>Firma</h3>

@@ -1,6 +1,6 @@
 ---
 import Grundgeruest from '../layouts/Grundgeruest.astro';
-import Vorgangstabelle from '../components/Vorgangstabelle.astro';
+import Belegliste from '../components/Belegliste.astro';
 import { api } from '../lib/api';
 import { betrag } from '../lib/darstellung';
 
@@ -10,13 +10,10 @@ const meldung = Astro.url.searchParams.get('meldung');
 const summe = offen.reduce((s, v) => s + (v.quelle.brutto ?? 0), 0);
 ---
 <Grundgeruest titel="Export" benutzer={sitzung.benutzer.name} aktiv="export">
-  <div class="abschnitt">
-    <div><p class="eyebrow">Geprüft. Bereit zur Übergabe.</p><h1>Übergabe an DATEV</h1></div>
-  </div>
-
   {meldung && <p class="meldung" role="status">{meldung}</p>}
 
   <div class="export-layout"><div>
+  <h1>Übergabe an DATEV</h1>
   <p class="sub" style="max-width:65ch">
     Freigegebene Belege, die noch nicht gebucht wurden. Das Paket enthält Belegbild,
     Belegsatzdaten und <code>document.xml</code>. Jeder übergebene Vorgang wird vermerkt und
@@ -31,7 +28,8 @@ const summe = offen.reduce((s, v) => s + (v.quelle.brutto ?? 0), 0);
     </p>
   )}
 
-  <Vorgangstabelle vorgaenge={offen} leerText="Nichts zur Übergabe bereit." />
+  <h2 class="list-title">Bereit zur Übergabe</h2>
+  <Belegliste vorgaenge={offen} leerText="Nichts zur Übergabe bereit." exportListe />
   </div><aside class="export-paket">
     <h2>DATEV-Paket</h2>
     <p>{offen.length} {offen.length === 1 ? 'Beleg' : 'Belege'} · {betrag(summe)} brutto</p>

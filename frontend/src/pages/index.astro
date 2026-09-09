@@ -1,12 +1,13 @@
 ---
 import Grundgeruest from '../layouts/Grundgeruest.astro';
-import Vorgangstabelle from '../components/Vorgangstabelle.astro';
+import Belegliste from '../components/Belegliste.astro';
 import Ablage from '../components/Ablage.astro';
 import { api, type Vorgang } from '../lib/api';
 import { anzeigezustand, datum, heute, zahlwort } from '../lib/darstellung';
 
 const { sitzung } = Astro.locals;
 const alle = await api.vorgaenge(sitzung.accessToken, true);
+const mail = await api.mailEingang(sitzung.accessToken).catch(() => null);
 
 const offen = alle.filter((v) => anzeigezustand(v) === 'offen');
 const zurUebergabe = alle.filter((v) => anzeigezustand(v) === 'freigegeben');
@@ -26,12 +27,9 @@ const meldung = Astro.url.searchParams.get('meldung');
 ---
 <Grundgeruest titel="Übersicht" benutzer={sitzung.benutzer.name} aktiv="uebersicht">
   {meldung && <p class="meldung" role="status">{meldung}</p>}
-  <p class="greeting">Willkommen, <strong>{sitzung.benutzer.name}</strong>.</p>
-  <p class="datum">{heute()}</p>
-
   <div class="hero">
     <div>
-      <p class="eyebrow">Dein Prüftisch</p>
+      <p class="greeting">Willkommen, <strong>{sitzung.benutzer.name}</strong>. <span>{heute()}</span></p>
       {offen.length === 0 ? (
         <>
           <h1 class="headline">Nichts wartet auf dich, {vorname}.</h1>
@@ -51,7 +49,6 @@ const meldung = Astro.url.searchParams.get('meldung');
           </p>
         </>
       )}
-      <a class="btn btn-primary" href="/pruefliste">Prüfliste öffnen →</a>
     </div>
 
     <Ablage />
@@ -64,14 +61,24 @@ const meldung = Astro.url.searchParams.get('meldung');
     <a class="stat" href="/pruefliste?zustand=abgelehnt"><strong>{abgelehnt.length}</strong><span>abgelehnt</span></a>
   </div>
 
-  <section>
+  <div class="overview-grid"><section>
     <div class="abschnitt">
       <h2>Was zuerst</h2>
-      {offen.length > 3 && <a href="/pruefliste">Alle {offen.length} Vorgänge ansehen →</a>}
+      <a href="/pruefliste">Alle {alle.length} Vorgänge ansehen →</a>
     </div>
-    <Vorgangstabelle
+    <Belegliste
       vorgaenge={aeltesteZuerst.slice(0, 3)}
       leerText="Keine offenen Vorgänge."
     />
   </section>
+  <aside class="mail-status">
+    <h3>{mail ? (mail.aktiv ? 'Mail-Eingang aktiviert' : 'Mail-Eingang pausiert') : 'Mail-Eingang nicht erreichbar'}</h3>
+    {mail ? <dl>
+      <dt>Postfach</dt><dd>{mail.benutzername || 'Nicht eingerichtet'}</dd>
+      <dt>Server</dt><dd>{mail.host || 'Nicht eingerichtet'}</dd>
+      <dt>Prüftakt</dt><dd>{mail.taktSekunden} Sekunden</dd>
+      <dt>Ordner</dt><dd>{mail.ordner}</dd>
+    </dl> : <p>Die Einstellungen konnten nicht geladen werden.</p>}
+    <a href="/einstellungen#mail">Mail-Eingang verwalten →</a>
+  </aside></div>
 </Grundgeruest>

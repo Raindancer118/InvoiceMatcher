@@ -1,55 +1,14 @@
 ---
-import Grundgeruest from '../layouts/Grundgeruest.astro';
-import Vorgangstabelle from '../components/Vorgangstabelle.astro';
+import Prueftisch from '../components/Prueftisch.astro';
 import { api } from '../lib/api';
 import { anzeigezustand } from '../lib/darstellung';
 
 const { sitzung } = Astro.locals;
-const angefragt = Astro.url.searchParams.get('zustand') ?? 'offen';
-const filter = ['offen', 'freigegeben', 'uebergeben', 'abgelehnt', 'alle'].includes(angefragt) ? angefragt : 'offen';
-
+const angefragt = Astro.url.searchParams.get('zustand') ?? 'alle';
+const filter = ['alle', 'offen', 'freigegeben', 'uebergeben', 'abgelehnt'].includes(angefragt) ? angefragt : 'alle';
 const alle = await api.vorgaenge(sitzung.accessToken, true);
 const gezeigt = filter === 'alle' ? alle : alle.filter((v) => anzeigezustand(v) === filter);
-
-const reiter = [
-  { schluessel: 'offen', name: 'Offen' },
-  { schluessel: 'freigegeben', name: 'Freigegeben' },
-  { schluessel: 'uebergeben', name: 'Übergeben' },
-  { schluessel: 'abgelehnt', name: 'Abgelehnt' },
-  { schluessel: 'alle', name: 'Alle' },
-];
-
-const anzahl = (schluessel: string) =>
-  schluessel === 'alle' ? alle.length : alle.filter((v) => anzeigezustand(v) === schluessel).length;
+const id = Astro.url.searchParams.get('id');
+const vorgang = gezeigt.find((v) => v.id === id) ?? gezeigt[0];
 ---
-<Grundgeruest titel="Prüfliste" benutzer={sitzung.benutzer.name} aktiv="pruefliste">
-  <div class="abschnitt">
-    <div><p class="eyebrow">Belege bearbeiten</p><h1>Prüfliste</h1></div>
-    <a href="/#datei">Beleg einreichen →</a>
-  </div>
-
-  <nav class="reiter">
-    {reiter.map((eintrag) => (
-      <a
-        href={`/pruefliste?zustand=${eintrag.schluessel}`}
-        aria-current={filter === eintrag.schluessel ? 'page' : undefined}
-      >
-        {eintrag.name} <span class="anzahl num">{anzahl(eintrag.schluessel)}</span>
-      </a>
-    ))}
-  </nav>
-
-  <Vorgangstabelle vorgaenge={gezeigt} leerText="In diesem Zustand liegt gerade nichts." />
-</Grundgeruest>
-
-<style is:global>
-  .reiter { display: flex; flex-wrap: wrap; gap: .25rem; margin-bottom: 1rem; }
-  .reiter a {
-    display: flex; align-items: center; gap: .45rem; min-height: 44px;
-    padding: .5rem .8rem; border-radius: var(--r-md);
-    color: var(--text-2); text-decoration: none; font-size: .88rem; font-weight: 600;
-  }
-  .reiter a:hover { background: var(--surface-sunken); color: var(--text); }
-  .reiter a[aria-current] { background: var(--surface-card); color: var(--text); box-shadow: var(--shadow-card); }
-  .reiter .anzahl { color: var(--text-3); font-size: .78rem; }
-</style>
+<Prueftisch alle={alle} vorgang={vorgang} filter={filter} />

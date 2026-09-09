@@ -101,13 +101,27 @@ test('Prüftisch: geschützte Seiten, Originale und vollständige Formularwege',
   });
   await t.test('Kopfdaten, Buchungstext, XML und Ablehnungsgrund erscheinen im Prüftisch', async () => {
     const html = await (await get('/vorgang/test-beleg')).text();
-    for (const text of ['R-42', 'Testlieferant', 'Prüfbare Position', 'Testauftrag', 'name="grund"', 'Als Nächstes', '&lt;Invoice&gt;']) assert.ok(html.includes(text), text);
+    for (const text of ['R-42', 'Testlieferant', 'Prüfbare Position', 'Testauftrag', 'name="grund"', 'Auf dem Tisch', '&lt;Invoice&gt;']) assert.ok(html.includes(text), text);
     const result = await post('/vorgang/test-beleg/entscheiden', { entscheidung: 'ablehnen', grund: 'Beleg unvollständig' });
     assert.equal(result.status, 302);
     assert.equal(JSON.parse(calls.findLast((c) => c.path.endsWith('/ablehnung')).body).grund, 'Beleg unvollständig');
     const decided = await (await get('/vorgang/test-beleg')).text();
     assert.match(decided, /Beleg unvollständig/);
     assert.doesNotMatch(decided, /value="freigeben"/);
+  });
+  await t.test('Prüfliste öffnet Auswahl, Original und Prüfung zusammen; Filter behalten die Auswahl', async () => {
+    const html = await (await get('/pruefliste')).text();
+    assert.match(html, /Auf dem Tisch/);
+    assert.match(html, /&lt;Invoice&gt;/);
+    assert.match(html, /Prüfbare Position/);
+    assert.match(html, /aria-label="Warteschlange filtern"/);
+    assert.doesNotMatch(html, /class="tabelle"/);
+    const filtered = await (await get('/pruefliste?zustand=abgelehnt&id=test-beleg')).text();
+    assert.match(filtered, /Beleg unvollständig/);
+    assert.match(filtered, /zustand=abgelehnt(?:&amp;|&)id=test-beleg/);
+    const empty = await (await get('/pruefliste?zustand=offen')).text();
+    assert.match(empty, /In diesem Zustand liegt gerade nichts/);
+    assert.doesNotMatch(empty, /&lt;Invoice&gt;/);
   });
   await t.test('Statusfilter und PDF-Original bleiben erreichbar', async () => {
     assert.doesNotMatch(await (await get('/pruefliste?zustand=offen')).text(), /R-42/);

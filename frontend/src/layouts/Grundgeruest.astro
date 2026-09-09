@@ -44,6 +44,9 @@ const navigation = [
       </nav>
     )}
     {benutzer && (
+      <a class="btn btn-primary new-invoice" href="/#datei">+ Beleg einreichen</a>
+    )}
+    {benutzer && (
       <details class="user">
         <summary><span class="avatar">{initialen}</span><span>{benutzer}</span></summary>
         <a class="abmelden" href="/auth/logout">Abmelden</a>

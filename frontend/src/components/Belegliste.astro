@@ -1,0 +1,19 @@
+---
+import type { Vorgang } from '../lib/api';
+import { anzeigezustand, betrag, datum, FORMAT_TEXT, ZUSTAND_KLASSE, ZUSTAND_TEXT } from '../lib/darstellung';
+interface Props { vorgaenge: Vorgang[]; leerText: string; exportListe?: boolean }
+const { vorgaenge, leerText, exportListe = false } = Astro.props;
+---
+{vorgaenge.length === 0 ? <p class="leer">{leerText}</p> : (
+  <ol class="belegliste">
+    {vorgaenge.map((v) => {
+      const zustand = anzeigezustand(v);
+      return <li><a class="belegzeile" href={`/pruefliste?id=${encodeURIComponent(v.id)}`}>
+        <span class={'zustand ' + ZUSTAND_KLASSE[zustand]}>{ZUSTAND_TEXT[zustand]}</span>
+        <span><strong>{v.quelle.aussteller ?? v.dateiname}</strong><small>{v.ergebnis.belegfeld_1 ?? v.dateiname}</small></span>
+        <span class="klein">{exportListe ? FORMAT_TEXT[v.quelle.format] : datum(v.eingegangenAm)}</span>
+        <span class="num">{betrag(v.quelle.brutto)}</span>
+      </a></li>;
+    })}
+  </ol>
+)}
