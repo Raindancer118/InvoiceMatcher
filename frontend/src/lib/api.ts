@@ -154,11 +154,11 @@ export const api = {
       body: JSON.stringify({ benutzer, grund }),
     }),
 
-  datevPaket: (token: string) =>
+  datevPaket: (token: string, vorgaenge: string[] = [], erneut = false) =>
     ruf('/api/v1/export/datev', token, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: '{}',
+      body: JSON.stringify({ vorgaenge, erneut }),
     }),
 
   firma: (token: string) => json<Firma>('/api/v1/einstellungen/firma', token),

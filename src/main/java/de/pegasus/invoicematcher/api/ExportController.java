@@ -42,9 +42,12 @@ public class ExportController {
 
     @PostMapping("/datev")
     public ResponseEntity<byte[]> exportToDatev(@RequestBody(required = false) ExportRequest request) {
+        if (request != null && request.erneut() && request.isEmpty()) {
+            throw new IllegalArgumentException("Zum erneuten Export bitte Belege auswählen");
+        }
         DatevPackage datevPackage = request == null || request.isEmpty()
                 ? export.exportPending()
-                : export.export(request.vorgaenge());
+                : export.export(request.vorgaenge(), request.erneut());
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(new MediaType("application", "zip"));

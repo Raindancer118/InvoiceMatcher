@@ -128,6 +128,30 @@ class DatevExportServiceTest {
     }
 
     @Test
+    void explicitlyReexportsSelectedDocumentsWithoutChangingTheirFirstExportDate() {
+        ReviewCase submitted = review.submit(Belege.document("01_PDF_Klaus_Furniere.pdf"));
+        export.exportPending();
+        var firstExport = review.find(submitted.id()).exportedAt();
+
+        DatevPackage repeated = export.export(List.of(submitted.id(), submitted.id()), true);
+
+        assertThat(repeated.caseIds()).containsExactly(submitted.id());
+        assertThat(entriesOf(repeated.content())).containsKey("01_PDF_Klaus_Furniere.pdf");
+        assertThat(review.find(submitted.id()).exportedAt()).isEqualTo(firstExport);
+        assertThatThrownBy(() -> export.exportPending()).isInstanceOf(NothingToExportException.class);
+    }
+
+    @Test
+    void reexportDoesNotAllowUnapprovedDocuments() {
+        ReviewCase open = review.submit(Belege.document("05_PDF_Buerobedarf_Kopierer.pdf"));
+        assertThatThrownBy(() -> export.export(List.of(open.id()), true))
+                .isInstanceOf(NothingToExportException.class);
+        review.reject(open.id(), "tom", "Unvollständig");
+        assertThatThrownBy(() -> export.export(List.of(open.id()), true))
+                .isInstanceOf(NothingToExportException.class);
+    }
+
+    @Test
     void bundlesSeveralDocumentsIntoOnePackage() {
         review.submit(Belege.document("01_PDF_Klaus_Furniere.pdf"));
         review.submit(Belege.document("16_AR_Laub.pdf"));

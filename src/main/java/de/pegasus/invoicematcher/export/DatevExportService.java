@@ -8,6 +8,7 @@ import de.pegasus.invoicematcher.export.datev.LedgerXmlWriter;
 import de.pegasus.invoicematcher.extraction.SourceDocument;
 import de.pegasus.invoicematcher.review.ReviewCase;
 import de.pegasus.invoicematcher.review.ReviewService;
+import de.pegasus.invoicematcher.review.ReviewStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -71,7 +72,20 @@ public class DatevExportService {
     }
 
     public DatevPackage export(List<String> caseIds) {
-        List<ReviewCase> cases = caseIds.stream().map(review::find).filter(ReviewCase::isExportable).toList();
+        return export(caseIds, false);
+    }
+
+    /** Erneute Uebergaben verlangen eine ausdrueckliche Auswahl; die erste Uebergabe bleibt vermerkt. */
+    public DatevPackage export(List<String> caseIds, boolean repeat) {
+        if (caseIds == null || caseIds.isEmpty()) {
+            throw new NothingToExportException("Bitte mindestens einen Vorgang zum Export auswählen");
+        }
+        List<ReviewCase> selected = caseIds.stream().distinct().map(review::find).toList();
+        if (repeat && selected.stream().anyMatch(c -> c.status() != ReviewStatus.FREIGEGEBEN
+                && c.status() != ReviewStatus.AUTOMATISCH_FREIGEGEBEN)) {
+            throw new NothingToExportException("Erneuter Export ist nur für freigegebene Vorgänge möglich");
+        }
+        List<ReviewCase> cases = repeat ? selected : selected.stream().filter(ReviewCase::isExportable).toList();
         if (cases.isEmpty()) {
             throw new NothingToExportException("Keiner der angegebenen Vorgaenge ist freigegeben und noch offen");
         }
@@ -88,7 +102,8 @@ public class DatevExportService {
 
         byte[] zip = zip(packaged, createdAt);
         Instant exportedAt = Instant.now();
-        packaged.forEach(entry -> review.markExported(entry.caseId(), exportedAt));
+        cases.stream().filter(c -> c.exportedAt() == null)
+                .forEach(c -> review.markExported(c.id(), exportedAt));
 
         log.info("DATEV-Paket mit {} Beleg(en) erzeugt, davon {} mit Buchungssatz",
                 packaged.size(), packaged.stream().filter(entry -> entry.ledger() != null).count());

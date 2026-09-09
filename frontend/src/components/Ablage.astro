@@ -4,9 +4,9 @@ interface Props { kompakt?: boolean }
 const { kompakt = false } = Astro.props;
 ---
 <form class="dropzone" method="post" action="/belege/einreichen" enctype="multipart/form-data">
-  <h3>Beleg einreichen</h3>
-  {!kompakt && <p>PDF, ZUGFeRD oder XRechnung hierher ziehen</p>}
-  <input type="file" name="datei" accept=".pdf,.xml,application/pdf,application/xml" aria-label="Beleg auswählen" required id="datei" />
+  <h3>Belege einreichen</h3>
+  {!kompakt && <p>Bis zu 50 PDF-, ZUGFeRD- oder XRechnungs-Dateien auswählen oder hierher ziehen.</p>}
+  <input type="file" name="datei" accept=".pdf,.xml,application/pdf,application/xml" aria-label="Belege auswählen" multiple required id="datei" />
   <button class="btn btn-primary" type="submit" id="absenden">Einreichen</button>
   <p class="gewaehlt" role="status" hidden id="gewaehlt"></p>
 </form>
@@ -19,14 +19,14 @@ const { kompakt = false } = Astro.props;
 
   function uebernehmen(dateien: FileList | null) {
     if (!dateien || dateien.length === 0) return;
-    if (dateien.length !== 1 || !/\.(pdf|xml)$/i.test(dateien[0]!.name) || dateien[0]!.size === 0) {
+    if (dateien.length > 50) {
       feld.value = '';
-      gewaehlt.textContent = 'Bitte genau eine nicht leere PDF- oder XML-Datei auswählen.';
+      gewaehlt.textContent = 'Bitte höchstens 50 Belege auf einmal auswählen.';
       gewaehlt.hidden = false;
       return;
     }
     feld.files = dateien;
-    gewaehlt.textContent = dateien[0]!.name;
+    gewaehlt.textContent = Array.from(dateien).map((datei) => datei.name).join(' · ');
     gewaehlt.hidden = false;
     absenden.hidden = false;
   }
@@ -34,7 +34,7 @@ const { kompakt = false } = Astro.props;
   feld.addEventListener('change', () => uebernehmen(feld.files));
   flaeche.addEventListener('submit', () => {
     absenden.disabled = true;
-    absenden.textContent = 'Beleg wird verarbeitet …';
+    absenden.textContent = `${feld.files?.length ?? 0} Belege werden verarbeitet …`;
     flaeche.setAttribute('aria-busy', 'true');
   });
   window.addEventListener('pageshow', () => {

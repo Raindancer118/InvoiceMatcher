@@ -7,9 +7,15 @@
 import type { APIRoute } from 'astro';
 import { api, ApiFehler } from '../../lib/api';
 
-export const POST: APIRoute = async ({ locals, redirect }) => {
+export const POST: APIRoute = async ({ request, locals, redirect }) => {
+  const formular = await request.formData();
+  const erneut = formular.get('erneut') === 'on';
+  const vorgaenge = formular.getAll('vorgaenge').filter((v): v is string => typeof v === 'string' && v.trim() !== '');
+  if (erneut && vorgaenge.length === 0) {
+    return redirect('/export?meldung=' + encodeURIComponent('Zum erneuten Export bitte mindestens einen Beleg auswählen.'));
+  }
   try {
-    const antwort = await api.datevPaket(locals.sitzung.accessToken);
+    const antwort = await api.datevPaket(locals.sitzung.accessToken, vorgaenge, erneut);
     return new Response(antwort.body, {
       status: 200,
       headers: {

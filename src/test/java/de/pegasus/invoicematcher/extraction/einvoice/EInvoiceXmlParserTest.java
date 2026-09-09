@@ -12,6 +12,22 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class EInvoiceXmlParserTest {
 
+    @Test
+    void malformedXmlExplainsItsLocation() {
+        assertThatThrownBy(() -> new EInvoiceXmlParser().parse(
+                "<Invoice>\n<ID>42</Invoice>".getBytes(StandardCharsets.UTF_8), SourceFormat.XRECHNUNG))
+                .isInstanceOf(UnsupportedEInvoiceException.class)
+                .hasMessageContaining("Zeile 2").hasMessageContaining("Spalte");
+    }
+
+    @Test
+    void invalidDateExplainsWhyTheInvoiceWasRejected() {
+        assertThatThrownBy(() -> new EInvoiceXmlParser().parse(
+                "<Invoice><IssueDate>2026-99-01</IssueDate></Invoice>".getBytes(StandardCharsets.UTF_8), SourceFormat.XRECHNUNG))
+                .isInstanceOf(UnsupportedEInvoiceException.class)
+                .hasMessageContaining("Datum").hasMessageContaining("2026-99-01");
+    }
+
     private static final String UBL = """
             <?xml version="1.0" encoding="utf-8"?>
             <Invoice xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"

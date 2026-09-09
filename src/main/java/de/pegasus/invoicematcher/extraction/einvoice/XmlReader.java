@@ -4,6 +4,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXParseException;
+import org.xml.sax.helpers.DefaultHandler;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -31,9 +33,19 @@ public final class XmlReader {
 
     public static XmlReader parse(byte[] xml) {
         try (ByteArrayInputStream in = new ByteArrayInputStream(xml)) {
-            Document document = secureFactory().newDocumentBuilder().parse(in);
+            var builder = secureFactory().newDocumentBuilder();
+            builder.setErrorHandler(new DefaultHandler() {
+                @Override
+                public void error(SAXParseException e) throws SAXParseException { throw e; }
+                @Override
+                public void fatalError(SAXParseException e) throws SAXParseException { throw e; }
+            });
+            Document document = builder.parse(in);
             document.getDocumentElement().normalize();
             return new XmlReader(document.getDocumentElement());
+        } catch (SAXParseException e) {
+            throw new UnsupportedEInvoiceException("Ungültige XML-Struktur in Zeile " + e.getLineNumber()
+                    + ", Spalte " + e.getColumnNumber() + ": " + e.getMessage(), e);
         } catch (Exception e) {
             throw new UnsupportedEInvoiceException("Beleg-XML konnte nicht gelesen werden: " + e.getMessage(), e);
         }

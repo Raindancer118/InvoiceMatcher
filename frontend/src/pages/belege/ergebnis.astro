@@ -1,0 +1,28 @@
+---
+import Grundgeruest from '../../layouts/Grundgeruest.astro';
+import type { UploadErgebnis } from '../../lib/upload';
+const bericht = Astro.url.searchParams.get('bericht');
+const ergebnisse = bericht ? await Astro.session?.get<UploadErgebnis[]>('upload:' + bericht) : undefined;
+const angenommen = ergebnisse?.filter((e) => e.id).length ?? 0;
+const unklar = ergebnisse?.filter((e) => e.unklar).length ?? 0;
+---
+<Grundgeruest titel="Upload-Ergebnis" benutzer={Astro.locals.sitzung.benutzer.name} aktiv="uebersicht">
+  <h1>Ergebnis der Einreichung</h1>
+  {ergebnisse ? <>
+    <p role="status">{angenommen} angenommen · {ergebnisse.length - angenommen - unklar} abgelehnt{unklar > 0 && ` · ${unklar} mit unklarem Verarbeitungsstatus`}</p>
+    <ul class="upload-ergebnisse">
+      {ergebnisse.map((e) => <li>
+        <strong>{e.dateiname}</strong>
+        <span class={'zustand ' + (e.id ? 'z-frei' : e.unklar ? 'z-offen' : 'z-abg')}>{e.id ? 'Angenommen' : e.unklar ? 'Status unklar' : 'Abgelehnt'}</span>
+        <p>{e.meldung}</p>
+        {e.id && <a href={`/pruefliste?id=${encodeURIComponent(e.id)}`}>Vorgang prüfen →</a>}
+      </li>)}
+    </ul>
+  </> : <p>Dieser Upload-Bericht ist abgelaufen oder gehört nicht zu deiner Sitzung. Bereits angenommene Belege findest du in der Prüfliste.</p>}
+  <p><a class="btn btn-primary" href="/pruefliste">Zur Prüfliste</a> <a class="btn btn-ghost" href="/#datei">Weitere Belege einreichen</a></p>
+</Grundgeruest>
+<style>
+  .upload-ergebnisse { list-style:none; margin:2rem 0; padding:0; }
+  li { padding:1.2rem 0; border-top:1px solid var(--border); overflow-wrap:anywhere; }
+  .zustand { margin-left:1rem; }
+</style>

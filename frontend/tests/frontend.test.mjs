@@ -40,6 +40,11 @@ test('Prüftisch: geschützte Seiten, Originale und vollständige Formularwege',
     calls.push({ path: req.url, method: req.method, body, token: req.headers.authorization });
     res.setHeader('Content-Type', 'application/json');
     const path = req.url.split('?')[0];
+    if (path === '/api/v1/belege' && body.includes('defekt.xml')) {
+      res.statusCode = 422;
+      res.end(JSON.stringify({ detail: 'Ungültige XML-Struktur in Zeile 2, Spalte 5: End-Tag fehlt' }));
+      return;
+    }
     if (path.endsWith('/beleg')) { res.setHeader('Content-Type', 'application/xml'); res.end('<Invoice><Note>&lt;script&gt;</Note></Invoice>'); }
     else if (path.endsWith('/freigabe')) { vorgang.status = 'FREIGEGEBEN'; res.end(JSON.stringify(vorgang)); }
     else if (path.endsWith('/ablehnung')) { vorgang.status = 'ABGELEHNT'; vorgang.entscheidungsnotiz = JSON.parse(body).grund; res.end(JSON.stringify(vorgang)); }
@@ -153,6 +158,30 @@ test('Prüftisch: geschützte Seiten, Originale und vollständige Formularwege',
     assert.equal(await result.text(), 'PK-test-package');
     assert.match(await (await get('/export')).text(), /Nichts zur Übergabe bereit/);
     assert.match(await (await get('/vorgang/test-beleg')).text(), /An DATEV übergeben/);
+  });
+  await t.test('Mehrfach-Upload verarbeitet alle Dateien und erklärt einzelne Ablehnungen', async () => {
+    const body = new FormData();
+    for (const name of ['erste.xml', 'defekt.xml', 'letzte.xml']) {
+      body.append('datei', new File(['<Invoice/>'], name, { type: 'application/xml' }));
+    }
+    const before = calls.filter((c) => c.path === '/api/v1/belege').length;
+    const response = await get('/belege/einreichen', { method: 'POST', headers: { origin }, body });
+    assert.equal(calls.filter((c) => c.path === '/api/v1/belege').length - before, 3);
+    const result = await (await get(response.headers.get('location'))).text();
+    for (const text of ['erste.xml', 'defekt.xml', 'letzte.xml', 'Zeile 2, Spalte 5', 'End-Tag fehlt']) assert.ok(result.includes(text), text);
+    assert.match(result, /2 angenommen/);
+    assert.match(result, /1 abgelehnt/);
+  });
+  await t.test('Bereits exportierte Belege können gezielt erneut heruntergeladen werden', async () => {
+    const html = await (await get('/export')).text();
+    assert.match(html, /Erneut exportieren/);
+    const result = await post('/export/datev', { erneut: 'on', vorgaenge: 'test-beleg' });
+    assert.equal(result.headers.get('content-type'), 'application/zip');
+    assert.deepEqual(JSON.parse(calls.findLast((c) => c.path.endsWith('/datev')).body), { vorgaenge: ['test-beleg'], erneut: true });
+    const before = calls.length;
+    const empty = await post('/export/datev', { erneut: 'on' });
+    assert.match(empty.headers.get('location'), /meldung=/);
+    assert.equal(calls.length, before);
   });
   await t.test('Firmen- und Mailformular speichern über die bestehenden API-Routen', async () => {
     await post('/einstellungen/firma', firma);

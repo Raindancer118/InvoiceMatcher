@@ -150,6 +150,35 @@ class BelegApiIntegrationTest {
     }
 
     @Test
+    void malformedXmlIsRejectedWithAnActionableExplanation() throws Exception {
+        mockMvc.perform(multipart("/api/v1/belege")
+                        .file(new MockMultipartFile("datei", "defekt.xml", MediaType.APPLICATION_XML_VALUE,
+                                "<Invoice>\n<ID>42</Invoice>".getBytes(java.nio.charset.StandardCharsets.UTF_8))))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.detail", org.hamcrest.Matchers.containsString("Zeile 2")))
+                .andExpect(jsonPath("$.detail", org.hamcrest.Matchers.containsString("Spalte")));
+    }
+
+    @Test
+    void exportedInvoiceCanBeExplicitlyExportedAgain() throws Exception {
+        String id = com.jayway.jsonpath.JsonPath.read(
+                mockMvc.perform(multipart("/api/v1/belege").file(upload("01_PDF_Klaus_Furniere.pdf")))
+                        .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id");
+        String selected = "{\"vorgaenge\":[\"" + id + "\"]}";
+        mockMvc.perform(post("/api/v1/export/datev").contentType(MediaType.APPLICATION_JSON).content(selected))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/v1/export/datev").contentType(MediaType.APPLICATION_JSON).content(selected))
+                .andExpect(status().isConflict());
+        mockMvc.perform(post("/api/v1/export/datev").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"vorgaenge\":[\"" + id + "\"],\"erneut\":true}"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "application/zip"));
+        mockMvc.perform(post("/api/v1/export/datev").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"erneut\":true}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void reportsAnUnknownReviewCaseAsNotFound() throws Exception {
         mockMvc.perform(post("/api/v1/pruefungen/gibt-es-nicht/freigabe")
                         .contentType(MediaType.APPLICATION_JSON)

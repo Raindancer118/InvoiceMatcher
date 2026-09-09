@@ -83,6 +83,16 @@ docker compose up --build # als Container
 | `GET`  | `/api/v1/stammdaten/regeln` | Regelwerk in Anwendungsreihenfolge |
 | `GET`  | `/actuator/health` | Zustand |
 
+Das Frontend nimmt bis zu 50 Dateien je Einreichung an und zeigt für jede Datei ihr Ergebnis.
+Fehlerhafte Dateien stoppen die übrigen nicht. Dafür nutzt es die einzelne Belegannahme;
+der API-Stapelweg bricht dagegen beim ersten Fehler ab.
+
+Für einen gezielten erneuten DATEV-Export dient ein JSON-Body wie
+`{"vorgaenge":["vorgangs-id"],"erneut":true}`. Die Auswahl muss freigegeben sein;
+ohne `erneut` bleiben bereits übergebene Belege ausgeschlossen. Das ursprüngliche
+Exportdatum bleibt erhalten. Ein erneuter Import in DATEV kann Doppelbuchungen erzeugen.
+XML-Syntaxfehler werden mit Ursache, Zeile und Spalte als HTTP 422 zurückgegeben.
+
 Beispiel:
 
 ```bash
