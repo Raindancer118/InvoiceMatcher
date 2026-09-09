@@ -5,7 +5,8 @@ import { api } from '../lib/api';
 import { anzeigezustand } from '../lib/darstellung';
 
 const { sitzung } = Astro.locals;
-const filter = Astro.url.searchParams.get('zustand') ?? 'offen';
+const angefragt = Astro.url.searchParams.get('zustand') ?? 'offen';
+const filter = ['offen', 'freigegeben', 'uebergeben', 'abgelehnt', 'alle'].includes(angefragt) ? angefragt : 'offen';
 
 const alle = await api.vorgaenge(sitzung.accessToken, true);
 const gezeigt = filter === 'alle' ? alle : alle.filter((v) => anzeigezustand(v) === filter);
@@ -23,7 +24,8 @@ const anzahl = (schluessel: string) =>
 ---
 <Grundgeruest titel="Prüfliste" benutzer={sitzung.benutzer.name} aktiv="pruefliste">
   <div class="abschnitt">
-    <h2>Prüfliste</h2>
+    <div><p class="eyebrow">Belege bearbeiten</p><h1>Prüfliste</h1></div>
+    <a href="/#datei">Beleg einreichen →</a>
   </div>
 
   <nav class="reiter">

@@ -15,6 +15,7 @@ const { vorgaenge, leerText = 'Nichts zu tun.' } = Astro.props;
 {vorgaenge.length === 0 ? (
   <p class="leer">{leerText}</p>
 ) : (
+  <div class="table-scroll" role="region" aria-label="Vorgänge" tabindex="0">
   <table class="tabelle">
     <thead>
       <tr>
@@ -32,7 +33,7 @@ const { vorgaenge, leerText = 'Nichts zu tun.' } = Astro.props;
         const zustand = anzeigezustand(vorgang);
         const konfidenz = vorgang.ergebnis.konfidenz_score;
         return (
-          <tr onclick={`location.href='/vorgang/${vorgang.id}'`}>
+          <tr>
             <td>
               <a class={'zustand ' + ZUSTAND_KLASSE[zustand]} href={`/vorgang/${vorgang.id}`}>
                 {ZUSTAND_TEXT[zustand]}
@@ -40,7 +41,7 @@ const { vorgaenge, leerText = 'Nichts zu tun.' } = Astro.props;
             </td>
             <td class="num">{datum(vorgang.quelle.rechnungsdatum)}</td>
             <td>
-              <span class="partner">{vorgang.quelle.aussteller ?? vorgang.dateiname}</span><br />
+              <a class="partner" href={`/vorgang/${vorgang.id}`}>{vorgang.quelle.aussteller ?? vorgang.dateiname}</a><br />
               <span class="klein">{vorgang.ergebnis.document_type}</span>
             </td>
             <td class="konto">{vorgang.ergebnis.belegfeld_1 ?? '—'}</td>
@@ -59,6 +60,7 @@ const { vorgaenge, leerText = 'Nichts zu tun.' } = Astro.props;
       })}
     </tbody>
   </table>
+  </div>
 )}
 
 <style is:global>

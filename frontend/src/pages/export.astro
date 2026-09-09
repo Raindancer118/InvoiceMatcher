@@ -11,12 +11,13 @@ const summe = offen.reduce((s, v) => s + (v.quelle.brutto ?? 0), 0);
 ---
 <Grundgeruest titel="Export" benutzer={sitzung.benutzer.name} aktiv="export">
   <div class="abschnitt">
-    <h2>Übergabe an DATEV</h2>
+    <div><p class="eyebrow">Geprüft. Bereit zur Übergabe.</p><h1>Übergabe an DATEV</h1></div>
   </div>
 
-  {meldung && <p class="meldung">{meldung}</p>}
+  {meldung && <p class="meldung" role="status">{meldung}</p>}
 
-  <p class="sub" style="max-width:52ch">
+  <div class="export-layout"><div>
+  <p class="sub" style="max-width:65ch">
     Freigegebene Belege, die noch nicht gebucht wurden. Das Paket enthält Belegbild,
     Belegsatzdaten und <code>document.xml</code>. Jeder übergebene Vorgang wird vermerkt und
     kann nicht ein zweites Mal in ein Paket geraten.
@@ -30,13 +31,54 @@ const summe = offen.reduce((s, v) => s + (v.quelle.brutto ?? 0), 0);
     </p>
   )}
 
-  <div style="margin:1.5rem 0">
-    <form method="post" action="/export/datev">
+  <Vorgangstabelle vorgaenge={offen} leerText="Nichts zur Übergabe bereit." />
+  </div><aside class="export-paket">
+    <h2>DATEV-Paket</h2>
+    <p>{offen.length} {offen.length === 1 ? 'Beleg' : 'Belege'} · {betrag(summe)} brutto</p>
+    <p>Originalbelege und Buchungsdaten in einer ZIP-Datei. Bereits übergebene Belege werden nicht erneut exportiert.</p>
+    <form method="post" action="/export/datev" id="datev-export">
       <button class="btn btn-primary" type="submit" disabled={offen.length === 0}>
         Paket erzeugen und herunterladen
       </button>
     </form>
-  </div>
-
-  <Vorgangstabelle vorgaenge={offen} leerText="Nichts zur Übergabe bereit." />
+    <p id="export-status" role="status" hidden></p>
+  </aside></div>
 </Grundgeruest>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('#datev-export')!;
+  const button = form.querySelector<HTMLButtonElement>('button')!;
+  const status = document.querySelector<HTMLParagraphElement>('#export-status')!;
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (button.disabled) return;
+    button.disabled = true;
+    status.hidden = false;
+    status.textContent = 'Paket wird erstellt …';
+    try {
+      const response = await fetch(form.action, { method: 'POST', body: new URLSearchParams() });
+      if (response.redirected) { window.location.assign(response.url); return; }
+      if (!response.ok || !response.headers.get('Content-Type')?.includes('application/zip')) {
+        throw new Error('Das Paket konnte nicht heruntergeladen werden. Bitte den Übergabestatus prüfen.');
+      }
+      const url = URL.createObjectURL(await response.blob());
+      const download = document.createElement('a');
+      download.href = url;
+      download.download = 'DATEV-' + new Date().toISOString().slice(0, 10) + '.zip';
+      document.body.append(download);
+      download.click();
+      download.remove();
+      status.textContent = 'Download gestartet. Die enthaltenen Belege wurden als übergeben vermerkt.';
+      button.textContent = 'Paket übergeben';
+      const refresh = document.createElement('a');
+      refresh.href = '/export';
+      refresh.textContent = 'Übergabestatus aktualisieren →';
+      refresh.style.color = 'var(--approve)';
+      status.append(document.createElement('br'), refresh);
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : 'Download fehlgeschlagen.';
+      button.disabled = false;
+    }
+  });
+</script>

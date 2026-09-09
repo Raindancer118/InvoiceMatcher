@@ -10,12 +10,15 @@ const mail = await api.mailEingang(sitzung.accessToken);
 ---
 <Grundgeruest titel="Einstellungen" benutzer={sitzung.benutzer.name} aktiv="einstellungen">
   <div class="abschnitt">
-    <h2>Einstellungen</h2>
+    <div><p class="eyebrow">Dein Arbeitsplatz</p><h1>Einstellungen</h1></div>
   </div>
 
-  {meldung && <p class="meldung">{meldung}</p>}
+  {meldung && <p class="meldung" role="status">{meldung}</p>}
 
-  <div class="karte">
+  <div class="settings-layout">
+  <nav class="settings-nav" aria-label="Einstellungsbereiche"><a href="#firma">Firma</a><a href="#mail">Mail-Eingang</a></nav>
+  <div>
+  <div class="karte" id="firma">
     <h3>Firma</h3>
     <div class="inhalt">
       <p class="sub" style="max-width:60ch">
@@ -34,12 +37,12 @@ const mail = await api.mailEingang(sitzung.accessToken);
           <span>Steuernummer</span>
           <input type="text" name="steuernummer" value={firma.steuernummer ?? ''} />
         </label>
-        <button class="btn btn-primary" type="submit">Speichern</button>
+        <button class="btn btn-primary" type="submit">Firmendaten speichern</button>
       </form>
     </div>
   </div>
 
-  <div class="karte">
+  <div class="karte" id="mail">
     <h3>Belegannahme per Mail</h3>
     <div class="inhalt">
       <p class="sub" style="max-width:60ch">
@@ -119,22 +122,25 @@ const mail = await api.mailEingang(sitzung.accessToken);
           <span>Erlaubte Absender (Komma-getrennt, leer = alle)</span>
           <input type="text" name="erlaubteAbsender" value={mail.erlaubteAbsender.join(', ')} />
         </label>
-        <button class="btn btn-primary" type="submit">Speichern</button>
+        <button class="btn btn-primary" type="submit">Mail-Eingang speichern</button>
       </form>
     </div>
   </div>
+  </div></div>
 </Grundgeruest>
 
 <style>
-  .formular { display: flex; flex-direction: column; gap: .9rem; max-width: 32rem; }
+  .formular { display: grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1.2rem; }
+  .formular .btn,.feld-kasten,.feld:last-of-type { grid-column:1/-1; }
   .feld { display: flex; flex-direction: column; gap: .3rem; font-size: .88rem; }
   .feld span { color: var(--text-2); font-weight: 600; }
   .feld input, .feld select {
     font: inherit; color: var(--text); background: var(--surface-page);
-    border: 1px solid var(--border-strong); border-radius: var(--r-md); padding: .5rem .7rem;
+    border: 1px solid var(--border-strong); border-radius: var(--r-md); padding: .5rem .7rem; min-height:48px; width:100%;
   }
   .feld input:focus, .feld select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
   .feld-kasten { flex-direction: row; align-items: center; gap: .6rem; }
   .feld-kasten input { width: auto; }
   .formular .btn { align-self: flex-start; }
+  @media(max-width:650px) { .formular { grid-template-columns:1fr; } }
 </style>

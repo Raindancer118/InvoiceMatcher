@@ -26,11 +26,23 @@ const entscheidbar = vorgang.status === 'OFFEN';
 
 const summe = ergebnis.buchungszeilen.reduce((s, zeile) => s + zeile.umsatz, 0);
 const marke = (schwere: string) => (schwere === 'INFO' ? 'm-info' : 'm-warn');
+const alle = await api.vorgaenge(sitzung.accessToken, true);
+const warteschlange = alle.filter((v) => v.status === 'OFFEN' || v.id === id);
+let xml: string | null = null;
+let originalFehler: string | null = null;
+if (quelle.format === 'XRECHNUNG') {
+  try {
+    xml = await (await api.beleg(sitzung.accessToken, id)).text();
+  } catch {
+    originalFehler = 'Das XML-Original konnte nicht geladen werden. Bitte erneut öffnen.';
+  }
+}
 ---
 <Grundgeruest
   titel={`Vorgang ${ergebnis.belegfeld_1 ?? vorgang.dateiname}`}
   benutzer={sitzung.benutzer.name}
   aktiv="pruefliste"
+  breit
 >
   <div class="abschnitt">
     <h2>
@@ -40,7 +52,7 @@ const marke = (schwere: string) => (schwere === 'INFO' ? 'm-info' : 'm-warn');
     <a href="/pruefliste">← zurück zur Prüfliste</a>
   </div>
 
-  {meldung && <p class="meldung">{meldung}</p>}
+  {meldung && <p class="meldung" role="status">{meldung}</p>}
 
   <p class="zustandszeile">
     <span class={'zustand ' + ZUSTAND_KLASSE[zustand]}>{ZUSTAND_TEXT[zustand]}</span>
@@ -50,22 +62,35 @@ const marke = (schwere: string) => (schwere === 'INFO' ? 'm-info' : 'm-warn');
     {vorgang.entscheidungsnotiz && <span class="klein">· {vorgang.entscheidungsnotiz}</span>}
   </p>
 
-  <div class="detail">
+  <div class="workbench">
+    <aside class="queue" aria-label="Prüfwarteschlange">
+      <p class="eyebrow" style="color:var(--approve)">Prüftisch</p>
+      <h2>Als Nächstes</h2>
+      <a href="/pruefliste">Alle Vorgänge →</a>
+      <ul class="queue-list">
+        {warteschlange.map((v) => (
+          <li><a class="queue-item" href={`/vorgang/${v.id}`} aria-current={v.id === id ? 'page' : undefined}>
+            <strong>{v.quelle.aussteller ?? v.dateiname}</strong>
+            <small>{v.ergebnis.belegfeld_1 ?? v.dateiname}</small>
+            <span class="queue-meta"><span>{FORMAT_TEXT[v.quelle.format]}</span><span>{betrag(v.quelle.brutto)}</span></span>
+          </a></li>
+        ))}
+      </ul>
+    </aside>
+    <div class="detail">
     <div class="belegbild">
       <div class="kopf">
         <span>{vorgang.dateiname}</span>
         <span class="format">{FORMAT_TEXT[quelle.format]}</span>
+        <a href={`/vorgang/${vorgang.id}/beleg`} target="_blank" rel="noopener">Original öffnen ↗</a>
       </div>
       {quelle.format === 'XRECHNUNG' ? (
-        <div class="flaeche">
-          Reines XML ohne Belegbild.
-          <a href={`/vorgang/${vorgang.id}/beleg`}>XML ansehen</a>
-        </div>
+        xml !== null ? <pre class="xml-original" tabindex="0" aria-label="XML-Original">{xml}</pre> : <p class="flaeche">{originalFehler}</p>
       ) : (
-        <object data={`/vorgang/${vorgang.id}/beleg`} type="application/pdf" class="pdf">
+        <object data={`/vorgang/${vorgang.id}/beleg`} type="application/pdf" class="pdf" aria-label={`Originalbeleg ${vorgang.dateiname}`}>
           <div class="flaeche">
             Der Beleg lässt sich hier nicht anzeigen.
-            <a href={`/vorgang/${vorgang.id}/beleg`}>In neuem Tab öffnen</a>
+            <a href={`/vorgang/${vorgang.id}/beleg`} target="_blank" rel="noopener">In neuem Tab öffnen</a>
           </div>
         </object>
       )}
@@ -97,8 +122,11 @@ const marke = (schwere: string) => (schwere === 'INFO' ? 'm-info' : 'm-warn');
             <dt>Aussteller</dt><dd>{quelle.aussteller ?? '—'}</dd>
             <dt>Empfänger</dt><dd>{quelle.empfaenger ?? '—'}</dd>
             <dt>USt-IdNr.</dt><dd class="konto">{quelle.ausstellerUstId ?? '—'}</dd>
-            <dt>Netto / Steuer</dt><dd>{betrag(quelle.netto)} / {betrag(quelle.steuer)}</dd>
+            <dt>Netto</dt><dd>{betrag(quelle.netto)}</dd>
+            <dt>Steuer</dt><dd>{betrag(quelle.steuer)}</dd>
             <dt>Brutto</dt><dd>{betrag(quelle.brutto)}</dd>
+            <dt>Konfidenz</dt><dd>{Math.round(ergebnis.konfidenz_score * 100)} %</dd>
+            {ergebnis.buchungstext_kopf && <><dt>Buchungstext</dt><dd>{ergebnis.buchungstext_kopf}</dd></>}
           </dl>
         </div>
       </div>
@@ -109,38 +137,44 @@ const marke = (schwere: string) => (schwere === 'INFO' ? 'm-info' : 'm-warn');
           {ergebnis.buchungszeilen.length === 0 ? (
             <p class="klein" style="margin:0">Keine Buchungszeilen.</p>
           ) : (
-            <table class="buchung">
+            <div class="table-scroll"><table class="buchung">
               <thead>
                 <tr><th>Sachkonto</th><th>S/H</th><th>Steuerschl.</th><th class="r">Umsatz</th></tr>
               </thead>
               <tbody>
                 {ergebnis.buchungszeilen.map((zeile) => (
+                  <>
                   <tr>
                     <td class="konto">{zeile.sachkonto}</td>
                     <td>{zeile.soll_haben_kennzeichen}</td>
                     <td>{zeile.steuerschluessel ?? '—'}</td>
                     <td class="r">{betrag(zeile.umsatz)}</td>
                   </tr>
+                  {zeile.buchungstext && <tr class="buchungstext"><td colspan="4">{zeile.buchungstext}</td></tr>}
+                  </>
                 ))}
               </tbody>
               <tfoot>
                 <tr><td colspan="3">Summe netto</td><td class="r">{betrag(summe)}</td></tr>
               </tfoot>
-            </table>
+            </table></div>
           )}
         </div>
       </div>
 
       {entscheidbar ? (
         <form class="aktionen" method="post" action={`/vorgang/${vorgang.id}/entscheiden`}>
+          <details class="ablehnung">
+            <summary>Vorgang ablehnen …</summary>
+            <label for="grund">Begründung</label>
+            <textarea id="grund" name="grund" rows="3" maxlength="2000" placeholder="Was muss am Beleg geklärt werden?"></textarea>
+            <button class="btn btn-ghost" name="entscheidung" value="ablehnen" type="submit">Ablehnung speichern</button>
+          </details>
           <span class="klein">
             Konfidenz {ergebnis.konfidenz_score.toFixed(2).replace('.', ',')}
           </span>
           <span class="luecke"></span>
-          <button class="btn btn-ghost" name="entscheidung" value="ablehnen" type="submit">
-            Ablehnen
-          </button>
-          <button class="btn btn-primary" name="entscheidung" value="freigeben" type="submit">
+          <button class="btn btn-approve" name="entscheidung" value="freigeben" type="submit">
             Freigeben
           </button>
         </form>
@@ -155,16 +189,12 @@ const marke = (schwere: string) => (schwere === 'INFO' ? 'm-info' : 'm-warn');
       )}
     </div>
   </div>
+  </div>
 </Grundgeruest>
 
 <style is:global>
   .zustandszeile { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin: 0 0 1.2rem; }
-  .belegbild .pdf { display: block; width: 100%; aspect-ratio: 1 / 1.414; border: 0; }
   .belegbild .flaeche { flex-direction: column; gap: .6rem; }
   .belegbild .flaeche a { color: var(--accent); }
-  .meldung {
-    background: var(--olive-bg); color: var(--olive); font-weight: 600; font-size: .88rem;
-    border-radius: var(--r-md); padding: .7rem 1rem; margin: 0 0 1.2rem;
-  }
   .detail .karte:first-child { margin-top: 0; }
 </style>

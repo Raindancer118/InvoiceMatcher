@@ -22,13 +22,16 @@ const langeLiegend = offen.filter((v) => new Date(v.eingegangenAm).getTime() < e
 const aeltester = aeltesteZuerst[0];
 
 const vorname = sitzung.benutzer.name.split(/\s+/)[0];
+const meldung = Astro.url.searchParams.get('meldung');
 ---
 <Grundgeruest titel="Übersicht" benutzer={sitzung.benutzer.name} aktiv="uebersicht">
+  {meldung && <p class="meldung" role="status">{meldung}</p>}
   <p class="greeting">Willkommen, <strong>{sitzung.benutzer.name}</strong>.</p>
   <p class="datum">{heute()}</p>
 
   <div class="hero">
     <div>
+      <p class="eyebrow">Dein Prüftisch</p>
       {offen.length === 0 ? (
         <>
           <h1 class="headline">Nichts wartet auf dich, {vorname}.</h1>
@@ -48,20 +51,18 @@ const vorname = sitzung.benutzer.name.split(/\s+/)[0];
           </p>
         </>
       )}
+      <a class="btn btn-primary" href="/pruefliste">Prüfliste öffnen →</a>
     </div>
 
     <Ablage />
   </div>
 
-  <p class="zahlenzeile">
-    <b class="num">{offen.length}</b> offen
-    <span class="trenner">·</span>
-    <b class="num">{zurUebergabe.length}</b> zur Übergabe bereit
-    <span class="trenner">·</span>
-    <b class="num">{uebergeben.length}</b> übergeben
-    <span class="trenner">·</span>
-    <b class="num">{abgelehnt.length}</b> abgelehnt
-  </p>
+  <div class="stats" aria-label="Vorgänge nach Status">
+    <a class="stat" href="/pruefliste?zustand=offen"><strong>{offen.length}</strong><span>zur Prüfung</span></a>
+    <a class="stat" href="/export"><strong>{zurUebergabe.length}</strong><span>bereit für DATEV</span></a>
+    <a class="stat" href="/pruefliste?zustand=uebergeben"><strong>{uebergeben.length}</strong><span>übergeben</span></a>
+    <a class="stat" href="/pruefliste?zustand=abgelehnt"><strong>{abgelehnt.length}</strong><span>abgelehnt</span></a>
+  </div>
 
   <section>
     <div class="abschnitt">

@@ -1,0 +1,1359 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Alternativer HTML-Entwurf für den vollständigen InvoiceMatcher-Arbeitsplatz">
+  <title>Prüftisch · InvoiceMatcher</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --desk: #d8d7cd;
+      --desk-light: #ecebe3;
+      --paper: #fbfaf5;
+      --paper-dim: #f0eee5;
+      --ink: #171713;
+      --muted: #6d6b63;
+      --line: #b6b4aa;
+      --archive: #173e35;
+      --stamp: #f05a38;
+      --stamp-dark: #a9301c;
+      --approve: #b6df63;
+      --warn: #ffc857;
+      --blue-ink: #315a73;
+      --white: #fffef9;
+      --shadow-paper: 0 1px 0 rgba(23, 23, 19, .08), 0 28px 70px rgba(23, 23, 19, .18);
+      --font-label: "Arial Narrow", "Liberation Sans Narrow", "Nimbus Sans Narrow", sans-serif;
+      --font-body: Aptos, "Segoe UI", "Helvetica Neue", sans-serif;
+      --font-data: "Cascadia Mono", "Liberation Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html { background: var(--archive); }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100dvh;
+      overflow-x: hidden;
+      background: var(--desk);
+      color: var(--ink);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    body::after {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      pointer-events: none;
+      opacity: .04;
+      mix-blend-mode: multiply;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
+      content: "";
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button, summary, [role="button"] { min-height: 48px; touch-action: manipulation; }
+    button { color: inherit; }
+    [hidden] { display: none !important; }
+
+    :focus-visible {
+      outline: 3px solid var(--warn);
+      outline-offset: 3px;
+    }
+
+    .topbar {
+      position: relative;
+      z-index: 15;
+      min-height: 70px;
+      display: grid;
+      grid-template-columns: minmax(230px, 300px) 1fr auto;
+      align-items: stretch;
+      border-bottom: 1px solid rgba(23, 23, 19, .3);
+      background: var(--paper);
+    }
+
+    .brand {
+      min-height: 70px;
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      padding: 0 22px;
+      border: 0;
+      background: var(--archive);
+      color: var(--white);
+      cursor: pointer;
+      font-family: var(--font-label);
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -.02em;
+      text-align: left;
+    }
+
+    .brand-mark {
+      width: 30px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, .5);
+      border-radius: 1px 1px 8px 1px;
+      color: var(--approve);
+      font-family: var(--font-data);
+      font-size: 12px;
+      transform: rotate(-2deg);
+    }
+
+    .topnav {
+      display: flex;
+      align-items: stretch;
+      padding-inline: clamp(10px, 2vw, 30px);
+    }
+
+    .topnav button {
+      position: relative;
+      min-height: 48px;
+      padding: 0 clamp(9px, 1.5vw, 18px);
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: var(--font-label);
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .topnav button::after {
+      position: absolute;
+      right: 16px;
+      bottom: 0;
+      left: 16px;
+      height: 4px;
+      background: var(--stamp);
+      content: "";
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 150ms ease;
+    }
+
+    .topnav button:hover { color: var(--ink); }
+    .topnav button[aria-current="page"] { color: var(--ink); }
+    .topnav button[aria-current="page"]::after { transform: scaleX(1); }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 13px 0 6px;
+    }
+
+    .new-invoice, .primary-action {
+      min-height: 48px;
+      padding: 0 18px;
+      border: 1px solid var(--ink);
+      border-radius: 2px 12px 2px 2px;
+      background: var(--ink);
+      color: var(--white);
+      cursor: pointer;
+      font-family: var(--font-label);
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .new-invoice:hover, .primary-action:hover { background: var(--archive); }
+    .user-menu { position: relative; }
+
+    .user-menu summary {
+      min-width: 48px;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 50% 50% 44% 50%;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .user-menu summary::-webkit-details-marker { display: none; }
+
+    .avatar {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      border-radius: inherit;
+      background: var(--desk-light);
+      color: var(--archive);
+      font-family: var(--font-data);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .user-popover {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      width: 230px;
+      padding: 14px;
+      border: 1px solid var(--ink);
+      border-radius: 2px 16px 2px 2px;
+      background: var(--paper);
+      box-shadow: 0 22px 50px rgba(23, 23, 19, .22);
+    }
+
+    .user-popover strong, .user-popover small { display: block; }
+    .user-popover small { margin-top: 2px; color: var(--muted); }
+
+    .logout {
+      width: 100%;
+      min-height: 48px;
+      margin-top: 13px;
+      border: 1px solid var(--line);
+      background: transparent;
+      cursor: pointer;
+      font-family: var(--font-label);
+      font-weight: 700;
+      text-align: left;
+    }
+
+    .app-view[hidden] { display: none !important; }
+    .page-surface { min-height: calc(100dvh - 70px); padding: clamp(28px, 4vw, 62px); }
+    .page-inner { width: min(1380px, 100%); margin: 0 auto; }
+
+    .page-heading {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 30px;
+    }
+
+    .page-heading h1, .page-heading h2, .overview-title {
+      margin: 0;
+      font-family: var(--font-label);
+      font-weight: 800;
+      letter-spacing: -.045em;
+      line-height: .94;
+      text-rendering: optimizeLegibility;
+    }
+
+    .page-heading h1, .overview-title { font-size: clamp(48px, 7vw, 92px); }
+    .page-heading h2 { font-size: clamp(36px, 5vw, 58px); }
+    .muted { color: var(--muted); }
+    .data { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+
+    .overview {
+      background-color: var(--desk);
+      background-image:
+        linear-gradient(rgba(23, 23, 19, .05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(23, 23, 19, .05) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    .overview-intro {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(310px, .65fr);
+      gap: clamp(28px, 5vw, 80px);
+      align-items: end;
+      margin-bottom: clamp(38px, 6vw, 76px);
+    }
+
+    .greeting {
+      margin: 0 0 18px;
+      color: var(--archive);
+      font-family: var(--font-label);
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .overview-title { max-width: 10ch; }
+    .overview-title span { display: block; color: var(--archive); }
+    .overview-sub { max-width: 52ch; margin: 20px 0 0; color: var(--muted); font-size: 17px; }
+
+    .intake-card {
+      padding: 28px;
+      border: 1px solid var(--ink);
+      border-radius: 3px 28px 3px 3px;
+      background: var(--paper);
+      box-shadow: 14px 16px 0 rgba(23, 62, 53, .12);
+    }
+
+    .intake-card h2 { margin: 0 0 8px; font-family: var(--font-label); font-size: 28px; letter-spacing: -.03em; }
+    .intake-card p { margin: 0 0 22px; color: var(--muted); }
+
+    .intake-card button {
+      width: 100%;
+      min-height: 52px;
+      border: 1px solid var(--archive);
+      border-radius: 2px 13px 2px 2px;
+      background: var(--approve);
+      cursor: pointer;
+      font-family: var(--font-label);
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .stats-strip {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr 1fr;
+      margin-bottom: 42px;
+      border-block: 1px solid var(--ink);
+    }
+
+    .stat {
+      min-height: 104px;
+      display: grid;
+      align-content: center;
+      padding: 16px clamp(12px, 2vw, 26px);
+      border-right: 1px solid rgba(23, 23, 19, .25);
+    }
+
+    .stat:last-child { border-right: 0; }
+    .stat strong { font-family: var(--font-data); font-size: clamp(25px, 3vw, 40px); line-height: 1; }
+    .stat span { margin-top: 7px; color: var(--muted); font-size: 13px; }
+    .stat.is-open strong { color: var(--stamp-dark); }
+
+    .overview-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(260px, .5fr);
+      gap: clamp(24px, 4vw, 56px);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 13px;
+    }
+
+    .section-head h2, .section-head h3 { margin: 0; font-family: var(--font-label); font-size: 27px; letter-spacing: -.025em; }
+
+    .text-action {
+      min-height: 48px;
+      padding: 0 4px;
+      border: 0;
+      border-bottom: 1px solid var(--ink);
+      background: transparent;
+      cursor: pointer;
+      font-family: var(--font-label);
+      font-weight: 700;
+    }
+
+    .priority-list { margin: 0; padding: 0; border-top: 2px solid var(--ink); list-style: none; }
+
+    .priority-row {
+      width: 100%;
+      min-height: 72px;
+      display: grid;
+      grid-template-columns: 100px minmax(150px, 1fr) 110px 120px;
+      gap: 14px;
+      align-items: center;
+      padding: 11px 8px;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .priority-row:hover { background: rgba(251, 250, 245, .6); }
+    .priority-partner { font-family: var(--font-label); font-size: 18px; font-weight: 800; }
+    .status-text { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--status-color, var(--warn));
+    }
+
+    .mail-status {
+      padding: 23px;
+      border: 1px solid var(--archive);
+      border-radius: 2px 19px 2px 2px;
+      background: var(--archive);
+      color: var(--white);
+    }
+
+    .mail-status h3 { margin: 0 0 18px; font-family: var(--font-label); font-size: 23px; }
+    .mail-status dl { margin: 0; }
+    .mail-status div { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 11px 0; border-top: 1px solid rgba(255,255,255,.16); }
+    .mail-status dt { color: rgba(255,255,255,.64); }
+    .mail-status dd { margin: 0; font-family: var(--font-data); font-size: 12px; }
+
+    .workbench {
+      min-height: calc(100dvh - 70px);
+      display: grid;
+      grid-template-columns: minmax(275px, 312px) minmax(390px, 1fr) minmax(350px, 410px);
+    }
+
+    .queue { min-width: 0; padding: 24px 16px 30px; background: var(--archive); color: var(--white); }
+    .queue-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; padding: 0 7px 19px; }
+
+    .queue h1 {
+      margin: 0;
+      max-width: 7ch;
+      font-family: var(--font-label);
+      font-size: clamp(35px, 4vw, 47px);
+      line-height: .88;
+      letter-spacing: -.045em;
+    }
+
+    .queue-count { padding-bottom: 4px; border-bottom: 1px solid rgba(255, 255, 255, .28); color: var(--approve); font-family: var(--font-data); font-size: 12px; }
+
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      margin: 0 3px 18px;
+      padding: 4px;
+      border: 1px solid rgba(255, 255, 255, .18);
+      border-radius: 3px 13px 3px 3px;
+    }
+
+    .filter {
+      min-height: 48px;
+      padding: 0 5px;
+      border: 0;
+      border-radius: 2px 7px 2px 2px;
+      background: transparent;
+      color: rgba(255, 255, 255, .64);
+      cursor: pointer;
+      font-family: var(--font-label);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .filter.is-active { background: var(--paper); color: var(--archive); }
+    .queue-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+
+    .queue-item {
+      position: relative;
+      width: 100%;
+      min-height: 87px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px 12px;
+      align-items: start;
+      padding: 14px 13px 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, .18);
+      border-radius: 2px 14px 2px 2px;
+      background: rgba(255, 255, 255, .045);
+      color: var(--white);
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .queue-item::before {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 5px;
+      background: var(--marker, var(--warn));
+      content: "";
+      transform: scaleY(0);
+      transform-origin: bottom;
+      transition: transform 180ms ease;
+    }
+
+    .queue-item:hover { background: rgba(255, 255, 255, .08); }
+    .queue-item.is-active { border-color: var(--paper); background: var(--paper); color: var(--ink); }
+    .queue-item.is-active::before { transform: scaleY(1); }
+
+    .supplier { overflow: hidden; font-family: var(--font-label); font-size: 18px; font-weight: 800; letter-spacing: -.015em; text-overflow: ellipsis; white-space: nowrap; }
+    .amount { font-family: var(--font-data); font-size: 12px; font-weight: 700; }
+
+    .queue-meta {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: rgba(255, 255, 255, .58);
+      font-size: 11px;
+    }
+
+    .is-active .queue-meta { color: var(--muted); }
+    .queue-meta .status-dot { margin-right: 5px; }
+
+    .viewer {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      padding: 17px clamp(15px, 2.5vw, 38px) 34px;
+      border-right: 1px solid rgba(23, 23, 19, .18);
+      background-color: var(--desk);
+      background-image:
+        linear-gradient(rgba(23, 23, 19, .055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(23, 23, 19, .055) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    .viewer-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding-bottom: 15px; }
+    .file-title { min-width: 0; }
+    .file-name { display: block; overflow: hidden; font-family: var(--font-label); font-size: 17px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+    .file-info { color: var(--muted); font-size: 11px; }
+    .document-tools { display: flex; flex: 0 0 auto; gap: 7px; }
+
+    .document-tools button {
+      min-width: 45px;
+      min-height: 48px;
+      padding: 0 11px;
+      border: 1px solid var(--ink);
+      border-radius: 2px 9px 2px 2px;
+      background: var(--paper);
+      cursor: pointer;
+      font-family: var(--font-data);
+    }
+
+    .document-tools .open-original { font-family: var(--font-label); font-weight: 700; }
+    .document-tools button:hover { background: var(--warn); }
+
+    .paper-stage {
+      min-height: 590px;
+      display: grid;
+      place-items: start center;
+      overflow: hidden auto;
+      padding: clamp(18px, 4vw, 46px);
+      border: 1px solid rgba(23, 23, 19, .28);
+      border-radius: 4px 24px 4px 4px;
+      background: rgba(236, 235, 227, .74);
+    }
+
+    .invoice-sheet {
+      width: min(100%, 550px);
+      min-height: 710px;
+      padding: clamp(34px, 5vw, 62px);
+      background: var(--paper);
+      box-shadow: var(--shadow-paper);
+      font-family: var(--font-data);
+      transform: rotate(-.35deg) scale(var(--zoom, 1));
+      transform-origin: top center;
+      transition: transform 180ms ease;
+    }
+
+    .invoice-brand { display: flex; align-items: start; justify-content: space-between; gap: 24px; margin-bottom: 64px; }
+
+    .vendor-mark {
+      width: 58px;
+      height: 58px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--ink);
+      color: var(--paper);
+      font-family: var(--font-label);
+      font-size: 23px;
+      font-weight: 800;
+      letter-spacing: -.06em;
+    }
+
+    .vendor-address { color: #77746b; font-size: 9px; line-height: 1.6; text-align: right; }
+    .recipient { width: 56%; margin-bottom: 42px; padding-top: 7px; border-top: 1px solid #aaa79d; font-size: 10px; line-height: 1.65; }
+    .invoice-sheet h2 { margin: 0 0 7px; font-family: var(--font-label); font-size: 32px; letter-spacing: -.035em; }
+    .invoice-number { margin-bottom: 30px; color: #77746b; font-size: 10px; }
+    .invoice-table { width: 100%; border-collapse: collapse; font-size: 9px; }
+    .invoice-table th { padding: 8px 4px; border-block: 1px solid var(--ink); text-align: left; }
+    .invoice-table td { padding: 12px 4px; border-bottom: 1px solid #d3d0c5; vertical-align: top; }
+    .invoice-table th:last-child, .invoice-table td:last-child { text-align: right; }
+    .totals { width: 54%; margin: 25px 0 0 auto; font-size: 10px; }
+    .total-line { display: flex; justify-content: space-between; padding: 5px 0; }
+    .total-line:last-child { margin-top: 4px; border-top: 1px solid var(--ink); font-weight: 700; }
+    .detected { background: linear-gradient(transparent 55%, rgba(182, 223, 99, .54) 55%); }
+
+    .xml-sheet {
+      width: min(100%, 620px);
+      min-height: 600px;
+      padding: clamp(25px, 4vw, 48px);
+      background: var(--ink);
+      color: #e8eedb;
+      box-shadow: var(--shadow-paper);
+      font-family: var(--font-data);
+      font-size: 11px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+
+    .xml-sheet strong { color: var(--approve); }
+    .review { min-width: 0; display: flex; flex-direction: column; background: var(--paper); }
+
+    .review-header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px 15px;
+      align-items: start;
+      padding: 22px 24px 19px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .review-kicker { margin: 0 0 5px; color: var(--muted); font-size: 11px; }
+    .review h2 { margin: 0; font-family: var(--font-label); font-size: 30px; line-height: 1; letter-spacing: -.035em; }
+
+    .score {
+      width: 61px;
+      height: 61px;
+      display: grid;
+      place-items: center;
+      border: 2px solid var(--archive);
+      border-radius: 50% 50% 45% 52%;
+      color: var(--archive);
+      font-family: var(--font-data);
+      font-size: 13px;
+      font-weight: 700;
+      transform: rotate(5deg);
+    }
+
+    .review-status { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+    .review-body { flex: 1; padding: 20px 24px 26px; overflow-y: auto; }
+
+    .notice {
+      position: relative;
+      margin-bottom: 23px;
+      padding: 12px 13px 12px 40px;
+      border: 1px solid var(--stamp);
+      border-radius: 2px 13px 2px 2px;
+      background: rgba(240, 90, 56, .07);
+      color: #6d2618;
+      font-size: 12px;
+    }
+
+    .notice::before {
+      position: absolute;
+      top: 13px;
+      left: 13px;
+      width: 16px;
+      height: 16px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--stamp);
+      border-radius: 50%;
+      content: "!";
+      font-family: var(--font-data);
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .section-title { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; font-family: var(--font-label); font-size: 18px; }
+    .section-title::after { height: 1px; flex: 1; background: var(--line); content: ""; }
+    .fact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; margin: 0 0 24px; }
+    .fact { min-width: 0; padding: 9px 0; border-bottom: 1px solid var(--paper-dim); }
+    .fact.wide { grid-column: 1 / -1; }
+    .fact dt { color: var(--muted); font-size: 11px; }
+    .fact dd { margin: 3px 0 0; overflow-wrap: anywhere; font-size: 13px; font-weight: 600; }
+    .booking { margin-bottom: 20px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); }
+    .booking-head, .booking-row { display: grid; grid-template-columns: 58px 34px 56px 1fr auto; gap: 8px; align-items: center; }
+    .booking-head { padding: 7px 0; border-bottom: 1px solid var(--ink); color: var(--muted); font-size: 9px; }
+    .booking-row { padding: 11px 0; border-bottom: 1px solid var(--line); }
+    .booking-row:last-child { border-bottom: 0; }
+    .account, .booking-amount { font-family: var(--font-data); font-size: 11px; font-weight: 700; }
+    .booking-copy { min-width: 0; }
+    .booking-copy strong { display: block; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .booking-copy small { color: var(--muted); font-size: 10px; }
+    .booking-total { display: flex; justify-content: space-between; padding-top: 9px; border-top: 1px solid var(--ink); font-size: 12px; font-weight: 700; }
+
+    .decision-bar {
+      position: sticky;
+      bottom: 0;
+      display: grid;
+      grid-template-columns: 1fr 1.45fr;
+      gap: 9px;
+      padding: 15px 17px 17px;
+      border-top: 1px solid var(--line);
+      background: rgba(251, 250, 245, .96);
+      backdrop-filter: blur(12px);
+    }
+
+    .decision-bar button {
+      min-height: 50px;
+      border: 1px solid var(--ink);
+      border-radius: 2px 13px 2px 2px;
+      cursor: pointer;
+      font-family: var(--font-label);
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .reject { background: transparent; }
+    .reject:hover { border-color: var(--stamp); color: var(--stamp-dark); }
+    .approve { background: var(--approve); }
+    .approve:hover { background: #c8ef79; }
+
+    .decided-note { margin: 0; padding: 19px; border-top: 1px solid var(--line); background: var(--desk-light); color: var(--muted); font-size: 13px; }
+
+    .export-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, .6fr); gap: clamp(28px, 5vw, 72px); align-items: start; }
+    .export-copy { max-width: 62ch; margin: 16px 0 33px; color: var(--muted); font-size: 16px; }
+    .export-list { margin: 0; padding: 0; border-top: 2px solid var(--ink); list-style: none; }
+    .export-row { display: grid; grid-template-columns: 96px minmax(150px, 1fr) 110px 110px; gap: 14px; align-items: center; padding: 15px 8px; border-bottom: 1px solid var(--line); }
+    .export-row strong { font-family: var(--font-label); font-size: 17px; }
+
+    .package-ticket {
+      position: sticky;
+      top: 94px;
+      padding: 28px;
+      border: 1px solid var(--ink);
+      border-radius: 3px 25px 3px 3px;
+      background: var(--archive);
+      color: var(--white);
+      box-shadow: 13px 14px 0 rgba(23, 23, 19, .11);
+    }
+
+    .package-ticket h2 { margin: 0 0 22px; font-family: var(--font-label); font-size: 31px; letter-spacing: -.03em; }
+    .package-total { display: flex; justify-content: space-between; padding: 12px 0; border-block: 1px solid rgba(255,255,255,.2); }
+    .package-total strong { font-family: var(--font-data); }
+    .package-ticket p { color: rgba(255,255,255,.66); font-size: 12px; }
+
+    .package-ticket button {
+      width: 100%;
+      min-height: 56px;
+      margin-top: 12px;
+      border: 1px solid var(--approve);
+      border-radius: 2px 14px 2px 2px;
+      background: var(--approve);
+      color: var(--ink);
+      cursor: pointer;
+      font-family: var(--font-label);
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .package-ticket button:disabled { cursor: default; opacity: .5; }
+
+    .settings-layout { display: grid; grid-template-columns: 270px minmax(0, 760px); gap: clamp(30px, 6vw, 90px); }
+    .settings-aside { position: sticky; top: 100px; }
+    .settings-aside p { color: var(--muted); }
+    .settings-nav { display: grid; margin-top: 25px; border-top: 1px solid var(--ink); }
+    .settings-nav a { min-height: 48px; display: flex; align-items: center; border-bottom: 1px solid var(--line); color: inherit; font-family: var(--font-label); font-weight: 700; text-decoration: none; }
+    .settings-group { margin-bottom: 52px; scroll-margin-top: 95px; }
+    .settings-group > header { margin-bottom: 20px; padding-bottom: 13px; border-bottom: 2px solid var(--ink); }
+    .settings-group h2 { margin: 0; font-family: var(--font-label); font-size: 32px; letter-spacing: -.03em; }
+    .settings-group header p { max-width: 60ch; margin: 6px 0 0; color: var(--muted); }
+    .settings-form { display: grid; grid-template-columns: 1fr 1fr; gap: 17px 18px; }
+    .form-field { display: grid; gap: 6px; align-content: start; }
+    .form-field.wide { grid-column: 1 / -1; }
+    .form-field > span { color: var(--muted); font-size: 12px; font-weight: 700; }
+
+    .form-field input, .form-field select, .form-field textarea {
+      width: 100%;
+      min-height: 48px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 2px 9px 2px 2px;
+      background: var(--paper);
+      color: var(--ink);
+    }
+
+    .form-field textarea { min-height: 84px; resize: vertical; }
+    .form-field input:hover, .form-field select:hover, .form-field textarea:hover { border-color: var(--ink); }
+
+    .switch-field {
+      grid-column: 1 / -1;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border: 1px solid var(--archive);
+      border-radius: 2px 14px 2px 2px;
+      background: rgba(23, 62, 53, .06);
+      font-weight: 700;
+    }
+
+    .switch-field input { width: 22px; height: 22px; accent-color: var(--archive); }
+    .save-row { grid-column: 1 / -1; padding-top: 6px; }
+
+    .dialog {
+      width: min(560px, calc(100vw - 32px));
+      padding: 0;
+      border: 1px solid var(--ink);
+      border-radius: 3px 23px 3px 3px;
+      background: var(--paper);
+      box-shadow: 0 30px 90px rgba(0, 0, 0, .34);
+    }
+
+    .dialog::backdrop { background: rgba(10, 29, 25, .72); backdrop-filter: blur(3px); }
+    .dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 20px 23px; border-bottom: 1px solid var(--line); }
+    .dialog-head h2 { margin: 0; font-family: var(--font-label); font-size: 27px; letter-spacing: -.03em; }
+    .close-dialog { width: 48px; min-height: 48px; border: 0; background: transparent; cursor: pointer; font-size: 24px; }
+    .dropzone { display: block; margin: 23px; padding: 38px 23px; border: 1px dashed var(--archive); border-radius: 2px 17px 2px 2px; background: var(--desk-light); text-align: center; }
+    .dropzone strong { display: block; margin-bottom: 7px; font-family: var(--font-label); font-size: 22px; }
+    .dropzone span { display: block; color: var(--muted); }
+    .dropzone input { width: 100%; margin-top: 20px; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 0 23px 23px; }
+    .dialog-actions button { min-height: 48px; padding: 0 18px; border: 1px solid var(--ink); border-radius: 2px 11px 2px 2px; cursor: pointer; font-family: var(--font-label); font-weight: 800; }
+    .dialog-actions .secondary { background: transparent; }
+    .dialog-actions .primary { background: var(--approve); }
+    .reason-body { padding: 22px 23px; }
+    .reason-body p { margin-top: 0; color: var(--muted); }
+    .reason-body textarea { width: 100%; min-height: 100px; padding: 12px; border: 1px solid var(--line); background: var(--white); resize: vertical; }
+
+    .auth-card {
+      width: min(560px, calc(100% - 32px));
+      margin: 10vh auto 0;
+      padding: clamp(30px, 6vw, 62px);
+      border: 1px solid var(--ink);
+      border-radius: 3px 28px 3px 3px;
+      background: var(--paper);
+      box-shadow: var(--shadow-paper);
+    }
+
+    .auth-card h1 { margin: 0 0 13px; font-family: var(--font-label); font-size: clamp(42px, 7vw, 68px); line-height: .94; letter-spacing: -.04em; }
+    .auth-card p { max-width: 52ch; color: var(--muted); }
+    .auth-preview-states { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); }
+    .auth-preview-states span { width: 100%; color: var(--muted); font-size: 11px; }
+    .auth-preview-states button { min-height: 48px; padding: 0 12px; border: 1px solid var(--line); background: transparent; cursor: pointer; font-family: var(--font-label); font-weight: 700; }
+
+    .toast {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 60;
+      max-width: min(390px, calc(100vw - 44px));
+      padding: 15px 18px;
+      border: 1px solid var(--ink);
+      border-radius: 2px 14px 2px 2px;
+      background: var(--ink);
+      color: var(--white);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, .26);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(14px);
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+
+    .toast.is-visible { opacity: 1; transform: translateY(0); }
+
+    @media (max-width: 1160px) {
+      .topbar { grid-template-columns: 230px 1fr auto; }
+      .new-invoice { display: none; }
+      .workbench { grid-template-columns: 280px minmax(390px, 1fr); }
+      .review { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1.45fr; border-top: 1px solid var(--ink); }
+      .review-header { border-right: 1px solid var(--line); border-bottom: 0; }
+      .review-body { max-height: none; }
+      .decision-bar, .decided-note { grid-column: 1 / -1; }
+    }
+
+    @media (max-width: 860px) {
+      .topbar { grid-template-columns: 190px 1fr auto; }
+      .brand { padding-inline: 15px; }
+      .topnav { padding-inline: 4px; }
+      .topnav button { padding-inline: 8px; font-size: 14px; }
+      .topnav button::after { right: 8px; left: 8px; }
+      .overview-intro, .overview-grid, .export-layout, .settings-layout { grid-template-columns: 1fr; }
+      .stats-strip { grid-template-columns: 1fr 1fr; }
+      .stat:nth-child(2) { border-right: 0; }
+      .stat:nth-child(-n+2) { border-bottom: 1px solid rgba(23,23,19,.25); }
+      .mail-status, .package-ticket, .settings-aside { position: static; }
+      .settings-nav { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 760px) {
+      body { padding-bottom: 62px; }
+      .topbar { position: sticky; top: 0; grid-template-columns: 1fr auto; min-height: 62px; }
+      .brand { min-height: 62px; }
+      .topnav {
+        position: fixed;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 40;
+        min-height: 62px;
+        justify-content: space-around;
+        border-top: 1px solid var(--ink);
+        background: var(--paper);
+      }
+      .topnav button { flex: 1; font-size: 13px; }
+      .topnav button::after { top: 0; bottom: auto; }
+      .top-actions { padding-right: 8px; }
+      .page-surface { min-height: calc(100dvh - 124px); padding: 28px 15px; }
+      .overview-title { font-size: clamp(48px, 16vw, 72px); }
+      .priority-row, .export-row { grid-template-columns: 90px 1fr auto; }
+      .priority-row .row-date, .export-row .row-format { display: none; }
+      .workbench { min-height: auto; display: block; }
+      .queue { padding: 20px 14px 18px; }
+      .queue-head { align-items: center; padding-bottom: 15px; }
+      .queue h1 { max-width: none; font-size: 34px; }
+      .queue-list { grid-auto-flow: column; grid-auto-columns: minmax(238px, 78vw); overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x mandatory; }
+      .queue-list > li { scroll-snap-align: start; }
+      .viewer { min-height: 650px; padding: 16px 12px 24px; border-right: 0; }
+      .paper-stage { min-height: 530px; padding: 22px 12px; }
+      .invoice-sheet { min-height: 620px; padding: 36px 30px; }
+      .review { display: flex; }
+      .review-header { border-right: 0; border-bottom: 1px solid var(--line); }
+      .review-body { overflow: visible; }
+      .decision-bar { position: static; }
+      .settings-form { grid-template-columns: 1fr; }
+      .form-field.wide, .switch-field, .save-row { grid-column: auto; }
+    }
+
+    @media (max-width: 500px) {
+      .brand { padding-inline: 13px; }
+      .brand-mark { display: none; }
+      .user-popover { position: fixed; top: 65px; right: 8px; }
+      .stats-strip { grid-template-columns: 1fr; }
+      .stat { border-right: 0; border-bottom: 1px solid rgba(23,23,19,.25); }
+      .stat:last-child { border-bottom: 0; }
+      .filters { grid-template-columns: repeat(2, 1fr); }
+      .viewer-toolbar { align-items: start; }
+      .open-original { display: none; }
+      .file-info { display: none; }
+      .fact-grid { grid-template-columns: 1fr; }
+      .fact.wide { grid-column: auto; }
+      .booking-head, .booking-row { grid-template-columns: 48px 27px 43px 1fr; }
+      .booking-head span:nth-child(4), .booking-copy { display: none; }
+      .decision-bar { grid-template-columns: 1fr; }
+      .settings-nav { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .001ms !important;
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar" id="app-header">
+    <button class="brand" type="button" data-view-target="uebersicht">
+      <span class="brand-mark" aria-hidden="true">IM</span><span>InvoiceMatcher</span>
+    </button>
+    <nav class="topnav" aria-label="Hauptnavigation">
+      <button type="button" data-view-target="uebersicht" aria-current="page">Übersicht</button>
+      <button type="button" data-view-target="pruefliste">Prüfliste</button>
+      <button type="button" data-view-target="export">Export</button>
+      <button type="button" data-view-target="einstellungen">Einstellungen</button>
+    </nav>
+    <div class="top-actions">
+      <button class="new-invoice open-upload" type="button">Beleg einreichen</button>
+      <details class="user-menu">
+        <summary aria-label="Benutzermenü"><span class="avatar">NK</span></summary>
+        <div class="user-popover">
+          <strong>Niklas Krause</strong><small>niklas.krause@example.de</small>
+          <button class="logout" id="logout" type="button">Abmelden</button>
+        </div>
+      </details>
+    </div>
+  </header>
+
+  <main id="app-main">
+    <section class="app-view page-surface overview" data-view="uebersicht">
+      <div class="page-inner">
+        <div class="overview-intro">
+          <div>
+            <p class="greeting">Willkommen, Niklas Krause. <span class="muted">Mittwoch, 9. September 2026</span></p>
+            <h1 class="overview-title"><span>Sieben Vorgänge</span> warten auf dich.</h1>
+            <p class="overview-sub">Einer liegt seit über einer Woche. Der älteste kam am 31.08.2026 herein.</p>
+          </div>
+          <aside class="intake-card">
+            <h2>Beleg einreichen</h2>
+            <p>PDF, ZUGFeRD oder XRechnung. Nach der Prüfung öffnet sich der Vorgang direkt.</p>
+            <button class="open-upload" type="button">Datei auswählen</button>
+          </aside>
+        </div>
+
+        <div class="stats-strip" aria-label="Vorgangsübersicht">
+          <div class="stat is-open"><strong>07</strong><span>offen</span></div>
+          <div class="stat"><strong>03</strong><span>zur Übergabe bereit</span></div>
+          <div class="stat"><strong>48</strong><span>an DATEV übergeben</span></div>
+          <div class="stat"><strong>02</strong><span>abgelehnt</span></div>
+        </div>
+
+        <div class="overview-grid">
+          <section>
+            <header class="section-head">
+              <h2>Was zuerst</h2>
+              <button class="text-action" type="button" data-view-target="pruefliste">Alle 60 Vorgänge ansehen</button>
+            </header>
+            <ol class="priority-list">
+              <li><button class="priority-row" type="button" data-open-case="klaus"><span class="status-text"><i class="status-dot" style="--status-color: var(--stamp)"></i>Offen</span><span class="priority-partner">Klaus Furniere GmbH</span><span class="row-date data">31.08.2026</span><span class="data">480,76 €</span></button></li>
+              <li><button class="priority-row" type="button" data-open-case="buero"><span class="status-text"><i class="status-dot" style="--status-color: var(--warn)"></i>Offen</span><span class="priority-partner">Büro &amp; Papier Nord</span><span class="row-date data">08.09.2026</span><span class="data">128,40 €</span></button></li>
+              <li><button class="priority-row" type="button" data-open-case="profiwerk"><span class="status-text"><i class="status-dot" style="--status-color: var(--stamp)"></i>Offen</span><span class="priority-partner">Profiwerk Handel</span><span class="row-date data">08.09.2026</span><span class="data">2.142,81 €</span></button></li>
+            </ol>
+          </section>
+          <aside class="mail-status">
+            <h3>Postfach läuft</h3>
+            <dl>
+              <div><dt>Adresse</dt><dd>belege@volantic.de</dd></div>
+              <div><dt>Letzte Prüfung</dt><dd>vor 2 Min.</dd></div>
+              <div><dt>Nächster Lauf</dt><dd>in 3 Min.</dd></div>
+              <div><dt>Heute übernommen</dt><dd>12 Belege</dd></div>
+            </dl>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-view workbench" data-view="pruefliste" hidden>
+      <nav class="queue" aria-label="Prüfwarteschlange">
+        <div class="queue-head"><h1>Auf dem Tisch</h1><span class="queue-count" id="queue-count">60 gesamt</span></div>
+        <div class="filters" aria-label="Warteschlange filtern">
+          <button class="filter is-active" type="button" data-filter="alle">Alle</button>
+          <button class="filter" type="button" data-filter="offen">Offen</button>
+          <button class="filter" type="button" data-filter="freigegeben">Freigegeben</button>
+          <button class="filter" type="button" data-filter="uebergeben">Übergeben</button>
+          <button class="filter" type="button" data-filter="abgelehnt">Abgelehnt</button>
+        </div>
+        <ol class="queue-list">
+          <li><button class="queue-item is-active" id="case-klaus" type="button" style="--marker: var(--stamp)" data-key="klaus" data-state="offen" data-format="PDF" data-file="Klaus_Furniere_5007.pdf" data-supplier="Klaus Furniere GmbH" data-amount="480,76 €" data-score="85 %" data-note="Rechnungsanschrift weicht von den Stammdaten ab."><span class="supplier">Klaus Furniere GmbH</span><span class="amount">480,76 €</span><span class="queue-meta"><span><i class="status-dot" style="--status-color: var(--stamp)"></i>Offen · 1 Hinweis</span><span>PDF</span></span></button></li>
+          <li><button class="queue-item" id="case-buero" type="button" style="--marker: var(--warn)" data-key="buero" data-state="offen" data-format="SCAN" data-file="Buerobedarf_August.pdf" data-supplier="Büro &amp; Papier Nord" data-amount="128,40 €" data-score="72 %" data-note="Steuerbetrag konnte im Scan nicht sicher zugeordnet werden."><span class="supplier">Büro &amp; Papier Nord</span><span class="amount">128,40 €</span><span class="queue-meta"><span><i class="status-dot" style="--status-color: var(--warn)"></i>Offen · Scan prüfen</span><span>SCAN</span></span></button></li>
+          <li><button class="queue-item" id="case-hanse" type="button" style="--marker: var(--approve)" data-key="hanse" data-state="freigegeben" data-format="XRECHNUNG" data-file="XRechnung_87219.xml" data-supplier="Hansekontor Logistik" data-amount="1.904,00 €" data-score="96 %" data-note="Alle Pflichtangaben erkannt. Der Vorgang wurde automatisch freigegeben."><span class="supplier">Hansekontor Logistik</span><span class="amount">1.904,00 €</span><span class="queue-meta"><span><i class="status-dot" style="--status-color: var(--approve)"></i>Freigegeben</span><span>XRechnung</span></span></button></li>
+          <li><button class="queue-item" id="case-profiwerk" type="button" style="--marker: var(--stamp)" data-key="profiwerk" data-state="offen" data-format="ZUGFERD" data-file="Werkstattbedarf_1188.pdf" data-supplier="Profiwerk Handel" data-amount="2.142,81 €" data-score="61 %" data-note="Für zwei Positionen wurde kein eindeutiges Sachkonto gefunden."><span class="supplier">Profiwerk Handel</span><span class="amount">2.142,81 €</span><span class="queue-meta"><span><i class="status-dot" style="--status-color: var(--stamp)"></i>Offen · 2 Konten</span><span>ZUGFeRD</span></span></button></li>
+          <li><button class="queue-item" id="case-bau" type="button" style="--marker: var(--blue-ink)" data-key="bau" data-state="uebergeben" data-format="PDF" data-file="Baustoffe_9912.pdf" data-supplier="Baukontor Weser" data-amount="684,25 €" data-score="91 %" data-note="Der Beleg wurde geprüft und am 08.09.2026 an DATEV übergeben."><span class="supplier">Baukontor Weser</span><span class="amount">684,25 €</span><span class="queue-meta"><span><i class="status-dot" style="--status-color: var(--blue-ink)"></i>Übergeben</span><span>PDF</span></span></button></li>
+          <li><button class="queue-item" id="case-muster" type="button" style="--marker: var(--stamp-dark)" data-key="muster" data-state="abgelehnt" data-format="PDF" data-file="Musterbeleg_ohne_Datum.pdf" data-supplier="Musterhandel GmbH" data-amount="73,10 €" data-score="33 %" data-note="Pflichtangaben fehlen. Der Vorgang wurde von Niklas Krause abgelehnt."><span class="supplier">Musterhandel GmbH</span><span class="amount">73,10 €</span><span class="queue-meta"><span><i class="status-dot" style="--status-color: var(--stamp-dark)"></i>Abgelehnt</span><span>PDF</span></span></button></li>
+        </ol>
+      </nav>
+
+      <section class="viewer" aria-label="Belegvorschau">
+        <div class="viewer-toolbar">
+          <div class="file-title"><strong class="file-name" id="file-name">Klaus_Furniere_5007.pdf</strong><span class="file-info" id="file-info">PDF · 1 Seite · Textebene erkannt</span></div>
+          <div class="document-tools" aria-label="Belegwerkzeuge">
+            <button class="open-original" id="open-original" type="button">Original öffnen</button>
+            <button id="zoom-out" type="button" aria-label="Verkleinern">−</button>
+            <button id="zoom-in" type="button" aria-label="Vergrößern">+</button>
+          </div>
+        </div>
+        <div class="paper-stage">
+          <article class="invoice-sheet" id="invoice-sheet" aria-label="Beispielrechnung">
+            <div class="invoice-brand"><div class="vendor-mark" aria-hidden="true">KF</div><div class="vendor-address">KLAUS FURNIERE GMBH<br>HOLZWEG 18 · 20457 HAMBURG<br>040 882 91 44</div></div>
+            <div class="recipient">Pegasus Möbelmanufaktur GmbH<br>Werkstraße 7<br>28195 Bremen</div>
+            <h2>Rechnung</h2><div class="invoice-number">BELEG 5007 &nbsp;&nbsp; 04.01.2026</div>
+            <table class="invoice-table">
+              <thead><tr><th>Pos.</th><th>Beschreibung</th><th>Menge</th><th>Betrag</th></tr></thead>
+              <tbody><tr><td>01</td><td><span class="detected">Echtholzfurnierkanten Ahorn 24 mm</span></td><td>20 m</td><td>399,00</td></tr><tr><td>02</td><td>Versand und Verpackung</td><td>1</td><td>5,00</td></tr></tbody>
+            </table>
+            <div class="totals"><div class="total-line"><span>Netto</span><span>404,00 €</span></div><div class="total-line"><span>USt. 19 %</span><span>76,76 €</span></div><div class="total-line"><span>Gesamt</span><span class="detected">480,76 €</span></div></div>
+          </article>
+          <pre class="xml-sheet" id="xml-sheet" hidden aria-label="XML-Beleg"><strong>&lt;ubl:Invoice&gt;</strong>
+  &lt;cbc:ID&gt;87219&lt;/cbc:ID&gt;
+  &lt;cbc:IssueDate&gt;2026-09-09&lt;/cbc:IssueDate&gt;
+  &lt;cac:AccountingSupplierParty&gt;
+    Hansekontor Logistik
+  &lt;/cac:AccountingSupplierParty&gt;
+  &lt;cbc:PayableAmount currencyID="EUR"&gt;1904.00&lt;/cbc:PayableAmount&gt;
+<strong>&lt;/ubl:Invoice&gt;</strong></pre>
+        </div>
+      </section>
+
+      <section class="review" aria-label="Kontierung prüfen">
+        <header class="review-header">
+          <div><p class="review-kicker">Vorgang 7 von 60</p><h2 id="supplier-title">Klaus Furniere GmbH</h2></div>
+          <div class="score" id="score" title="Erkennungskonfidenz">85 %</div>
+          <div class="review-status"><i class="status-dot" id="review-status-dot" style="--status-color: var(--stamp)"></i><span id="review-status-text">Offen</span></div>
+        </header>
+        <div class="review-body">
+          <div class="notice" id="notice">Rechnungsanschrift weicht von den Stammdaten ab.</div>
+          <h3 class="section-title">Belegdaten</h3>
+          <dl class="fact-grid">
+            <div class="fact"><dt>Belegart</dt><dd>Rechnungseingang</dd></div>
+            <div class="fact"><dt>Belegdatum</dt><dd class="data">04.01.2026</dd></div>
+            <div class="fact"><dt>Belegnummer</dt><dd class="data">5007</dd></div>
+            <div class="fact"><dt>Personenkonto</dt><dd class="data">70101</dd></div>
+            <div class="fact wide"><dt>Aussteller</dt><dd id="fact-supplier">Klaus Furniere GmbH</dd></div>
+            <div class="fact wide"><dt>Empfänger</dt><dd>Pegasus Möbelmanufaktur GmbH</dd></div>
+            <div class="fact"><dt>USt-IdNr.</dt><dd class="data">DE 215 907 311</dd></div>
+            <div class="fact"><dt>Netto / Steuer</dt><dd class="data">404,00 € / 76,76 €</dd></div>
+            <div class="fact wide"><dt>Brutto</dt><dd class="data" id="fact-gross">480,76 €</dd></div>
+          </dl>
+          <h3 class="section-title">Vorkontierung</h3>
+          <div class="booking">
+            <div class="booking-head"><span>Sachkonto</span><span>S/H</span><span>Steuerschl.</span><span>Buchungstext</span><span>Umsatz</span></div>
+            <div class="booking-row"><span class="account">3401</span><span>S</span><span class="data">9</span><span class="booking-copy"><strong>Echtholzfurnierkanten Ahorn</strong><small>Wareneingang 19 % Vorsteuer</small></span><span class="booking-amount">399,00</span></div>
+            <div class="booking-row"><span class="account">3401</span><span>S</span><span class="data">9</span><span class="booking-copy"><strong>Versand und Verpackung</strong><small>Wareneingang 19 % Vorsteuer</small></span><span class="booking-amount">5,00</span></div>
+          </div>
+          <div class="booking-total"><span>Summe netto</span><span class="data">404,00 €</span></div>
+        </div>
+        <footer class="decision-bar" id="decision-bar"><button class="reject" id="reject" type="button">Ablehnen</button><button class="approve" id="approve" type="button">Freigeben</button></footer>
+        <p class="decided-note" id="decided-note" hidden>Entschieden. Noch nicht an DATEV übergeben.</p>
+      </section>
+    </section>
+
+    <section class="app-view page-surface" data-view="export" hidden>
+      <div class="page-inner">
+        <div class="export-layout">
+          <section>
+            <header class="page-heading"><h1>Übergabe an DATEV</h1></header>
+            <p class="export-copy">Diese freigegebenen Belege wurden noch nicht gebucht. Das Paket enthält Belegbild, Belegsatzdaten und document.xml. Übergebene Vorgänge können nicht in ein zweites Paket geraten.</p>
+            <header class="section-head"><h2>Bereit zur Übergabe</h2><span class="data">3 Belege · 4.291,24 € brutto</span></header>
+            <ol class="export-list">
+              <li class="export-row"><span class="status-text"><i class="status-dot" style="--status-color: var(--approve)"></i>Freigegeben</span><strong>Hansekontor Logistik</strong><span class="row-format">XRechnung</span><span class="data">1.904,00 €</span></li>
+              <li class="export-row"><span class="status-text"><i class="status-dot" style="--status-color: var(--approve)"></i>Freigegeben</span><strong>Nordholz Beschläge</strong><span class="row-format">ZUGFeRD</span><span class="data">2.061,80 €</span></li>
+              <li class="export-row"><span class="status-text"><i class="status-dot" style="--status-color: var(--approve)"></i>Freigegeben</span><strong>Stadtwerke Bremen</strong><span class="row-format">PDF</span><span class="data">325,44 €</span></li>
+            </ol>
+          </section>
+          <aside class="package-ticket">
+            <h2>DATEV Document-Package</h2>
+            <div class="package-total"><span>3 Belege</span><strong>4.291,24 €</strong></div>
+            <p>Das Erzeugen vermerkt alle enthaltenen Vorgänge als übergeben. Dieser Schritt lässt sich nicht doppelt ausführen.</p>
+            <button id="create-package" type="button">Paket erzeugen und herunterladen</button>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-view page-surface" data-view="einstellungen" hidden>
+      <div class="page-inner settings-layout">
+        <aside class="settings-aside">
+          <div class="page-heading"><h1>Einstellungen</h1></div>
+          <p>Firmendaten steuern die Belegart. Das Postfach nimmt Anhänge automatisch in denselben Prüfablauf auf.</p>
+          <nav class="settings-nav" aria-label="Einstellungsbereiche"><a href="#firma">Firma</a><a href="#mail">Mail-Eingang</a></nav>
+        </aside>
+        <div>
+          <section class="settings-group" id="firma">
+            <header><h2>Firma</h2><p>Diese Angaben entscheiden, ob ein Beleg als Eingangs- oder Ausgangsrechnung gilt.</p></header>
+            <form class="settings-form prototype-form">
+              <label class="form-field wide"><span>Name</span><input type="text" name="name" value="Pegasus Möbelmanufaktur GmbH" required></label>
+              <label class="form-field"><span>USt-IdNr.</span><input type="text" name="ustIdNr" value="DE 290 551 210"></label>
+              <label class="form-field"><span>Steuernummer</span><input type="text" name="steuernummer" value="60/145/09123"></label>
+              <div class="save-row"><button class="primary-action" type="submit">Firmendaten speichern</button></div>
+            </form>
+          </section>
+          <section class="settings-group" id="mail">
+            <header><h2>Belegannahme per Mail</h2><p>Anhänge werden wie ein Upload eingereicht. Ein leeres Passwortfeld lässt das gespeicherte Passwort unverändert.</p></header>
+            <form class="settings-form prototype-form">
+              <label class="switch-field"><input type="checkbox" name="aktiv" checked><span>Belegannahme per Mail aktiv</span></label>
+              <label class="form-field"><span>Protokoll</span><select name="protokoll"><option selected>imaps</option><option>imap</option></select></label>
+              <label class="form-field"><span>Server</span><input type="text" name="host" value="mx.volantic.de"></label>
+              <label class="form-field"><span>Port</span><input type="number" name="port" min="1" max="65535" value="993" required></label>
+              <label class="form-field"><span>Benutzername</span><input type="text" name="benutzername" value="belege@volantic.de"></label>
+              <label class="form-field wide"><span>Passwort</span><input type="password" name="passwort" placeholder="Unverändert lassen" autocomplete="new-password"></label>
+              <label class="form-field"><span>Ordner</span><input type="text" name="ordner" value="INBOX"></label>
+              <label class="form-field"><span>Ordner für verarbeitete Mails</span><input type="text" name="verarbeitetOrdner" value="Verarbeitet"></label>
+              <label class="form-field"><span>Ordner für fehlgeschlagene Mails</span><input type="text" name="fehlgeschlagenOrdner" value="Fehlgeschlagen"></label>
+              <label class="form-field"><span>Takt (Sekunden)</span><input type="number" name="taktSekunden" min="1" value="300" required></label>
+              <label class="form-field"><span>Max. Nachrichten je Durchlauf</span><input type="number" name="maxNachrichtenProDurchlauf" min="1" value="25" required></label>
+              <label class="form-field"><span>Max. Anhanggröße (KB)</span><input type="number" name="maxAnhangGroesseKb" min="1" value="15360" required></label>
+              <label class="form-field wide"><span>Erlaubte Absender (Komma-getrennt, leer = alle)</span><textarea name="erlaubteAbsender">@pegasus.de, buchhaltung@example.de</textarea></label>
+              <div class="save-row"><button class="primary-action" type="submit">Mail-Eingang speichern</button></div>
+            </form>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="app-view page-surface" data-view="anmeldung" hidden>
+      <div class="auth-card">
+        <h1 id="auth-title">Du bist abgemeldet.</h1>
+        <p id="auth-copy">Die Belege bleiben geschützt. Die nächste Anmeldung läuft wieder über Authentik auf portal.tstieh.de.</p>
+        <button class="primary-action" type="button" id="login">Mit Authentik anmelden</button>
+        <div class="auth-preview-states">
+          <span>Fehlerseiten im Prototyp ansehen</span>
+          <button type="button" data-auth-state="failed">Anmeldung fehlgeschlagen</button>
+          <button type="button" data-auth-state="denied">Kein Zugriff</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog class="dialog" id="upload-dialog">
+    <div class="dialog-head"><h2>Beleg auf den Tisch legen</h2><button class="close-dialog" type="button" data-close-dialog="upload-dialog" aria-label="Dialog schließen">×</button></div>
+    <label class="dropzone"><strong>PDF oder XML auswählen</strong><span>Unterstützt werden PDF, ZUGFeRD und XRechnung.</span><input id="upload-file" type="file" accept=".pdf,.xml,application/pdf,application/xml"></label>
+    <div class="dialog-actions"><button class="secondary" type="button" data-close-dialog="upload-dialog">Abbrechen</button><button class="primary" id="submit-upload" type="button" disabled>Einreichen</button></div>
+  </dialog>
+
+  <dialog class="dialog" id="reject-dialog">
+    <div class="dialog-head"><h2>Vorgang ablehnen</h2><button class="close-dialog" type="button" data-close-dialog="reject-dialog" aria-label="Dialog schließen">×</button></div>
+    <div class="reason-body"><p>Die Begründung bleibt am Vorgang sichtbar. Ohne Text wird die Ablehnung als „ohne Angabe eines Grundes“ gespeichert.</p><label class="form-field"><span>Begründung</span><textarea id="reject-reason" placeholder="Was muss korrigiert werden?"></textarea></label></div>
+    <div class="dialog-actions"><button class="secondary" type="button" data-close-dialog="reject-dialog">Abbrechen</button><button class="primary" id="confirm-reject" type="button">Ablehnung speichern</button></div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const views = [...document.querySelectorAll('.app-view')];
+    const viewButtons = [...document.querySelectorAll('[data-view-target]')];
+    const navButtons = [...document.querySelectorAll('.topnav [data-view-target]')];
+    const items = [...document.querySelectorAll('.queue-item')];
+    const entries = items.map((item) => item.closest('li'));
+    const filters = [...document.querySelectorAll('.filter')];
+    const sheet = document.querySelector('#invoice-sheet');
+    const xmlSheet = document.querySelector('#xml-sheet');
+    const toast = document.querySelector('#toast');
+    const header = document.querySelector('#app-header');
+    let zoom = 1;
+    let toastTimer;
+
+    const stateLabels = { offen: 'Offen', freigegeben: 'Freigegeben', uebergeben: 'Übergeben', abgelehnt: 'Abgelehnt' };
+    const stateColors = { offen: 'var(--stamp)', freigegeben: 'var(--approve)', uebergeben: 'var(--blue-ink)', abgelehnt: 'var(--stamp-dark)' };
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('is-visible');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 3200);
+    }
+
+    function navigate(target) {
+      views.forEach((view) => {
+        view.hidden = view.dataset.view !== target;
+      });
+      navButtons.forEach((button) => {
+        if (button.dataset.viewTarget === target) button.setAttribute('aria-current', 'page');
+        else button.removeAttribute('aria-current');
+      });
+      header.hidden = target === 'anmeldung';
+      document.querySelector('.user-menu')?.removeAttribute('open');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    viewButtons.forEach((button) => button.addEventListener('click', () => navigate(button.dataset.viewTarget)));
+
+    function selectCase(item) {
+      items.forEach((entry) => entry.classList.remove('is-active'));
+      item.classList.add('is-active');
+      document.querySelector('#file-name').textContent = item.dataset.file;
+      document.querySelector('#file-info').textContent = item.dataset.format === 'XRECHNUNG'
+        ? 'XRechnung · strukturiertes XML'
+        : item.dataset.format + ' · 1 Seite · Original verfügbar';
+      document.querySelector('#supplier-title').textContent = item.dataset.supplier;
+      document.querySelector('#fact-supplier').textContent = item.dataset.supplier;
+      document.querySelector('#fact-gross').textContent = item.dataset.amount;
+      document.querySelector('#score').textContent = item.dataset.score;
+      document.querySelector('#notice').textContent = item.dataset.note;
+      document.querySelector('#review-status-text').textContent = stateLabels[item.dataset.state];
+      document.querySelector('#review-status-dot').style.setProperty('--status-color', stateColors[item.dataset.state]);
+      const isXml = item.dataset.format === 'XRECHNUNG';
+      sheet.hidden = isXml;
+      xmlSheet.hidden = !isXml;
+      const open = item.dataset.state === 'offen';
+      document.querySelector('#decision-bar').hidden = !open;
+      const decided = document.querySelector('#decided-note');
+      decided.hidden = open;
+      if (!open) {
+        decided.textContent = item.dataset.state === 'uebergeben'
+          ? 'Entschieden. An DATEV übergeben am 08.09.2026.'
+          : item.dataset.state === 'abgelehnt'
+            ? 'Abgelehnt durch Niklas Krause am 08.09.2026.'
+            : 'Entschieden. Noch nicht an DATEV übergeben.';
+      }
+    }
+
+    items.forEach((item) => item.addEventListener('click', () => selectCase(item)));
+
+    document.querySelectorAll('[data-open-case]').forEach((button) => {
+      button.addEventListener('click', () => {
+        navigate('pruefliste');
+        const item = document.querySelector('#case-' + button.dataset.openCase);
+        if (item) selectCase(item);
+      });
+    });
+
+    filters.forEach((filter) => {
+      filter.addEventListener('click', () => {
+        filters.forEach((entry) => entry.classList.remove('is-active'));
+        filter.classList.add('is-active');
+        let visible = 0;
+        entries.forEach((entry) => {
+          const state = entry.querySelector('.queue-item').dataset.state;
+          const show = filter.dataset.filter === 'alle' || filter.dataset.filter === state;
+          entry.hidden = !show;
+          if (show) visible += 1;
+        });
+        document.querySelector('#queue-count').textContent = String(visible) + ' angezeigt';
+      });
+    });
+
+    document.querySelector('#zoom-in').addEventListener('click', () => {
+      zoom = Math.min(1.18, zoom + .06);
+      sheet.style.setProperty('--zoom', zoom);
+    });
+
+    document.querySelector('#zoom-out').addEventListener('click', () => {
+      zoom = Math.max(.82, zoom - .06);
+      sheet.style.setProperty('--zoom', zoom);
+    });
+
+    document.querySelector('#open-original').addEventListener('click', () => {
+      showToast('In der echten Anwendung öffnet sich hier der geschützte Originalbeleg.');
+    });
+
+    document.querySelector('#approve').addEventListener('click', () => {
+      const active = document.querySelector('.queue-item.is-active');
+      active.dataset.state = 'freigegeben';
+      active.style.setProperty('--marker', 'var(--approve)');
+      active.querySelector('.queue-meta span').innerHTML = '<i class="status-dot" style="--status-color: var(--approve)"></i>Freigegeben';
+      selectCase(active);
+      showToast(active.dataset.supplier + ' wurde zur DATEV-Übergabe freigegeben.');
+    });
+
+    const rejectDialog = document.querySelector('#reject-dialog');
+    document.querySelector('#reject').addEventListener('click', () => rejectDialog.showModal());
+    document.querySelector('#confirm-reject').addEventListener('click', () => {
+      const active = document.querySelector('.queue-item.is-active');
+      const reason = document.querySelector('#reject-reason').value.trim();
+      active.dataset.state = 'abgelehnt';
+      active.dataset.note = reason || 'Ohne Angabe eines Grundes abgelehnt.';
+      active.style.setProperty('--marker', 'var(--stamp-dark)');
+      active.querySelector('.queue-meta span').innerHTML = '<i class="status-dot" style="--status-color: var(--stamp-dark)"></i>Abgelehnt';
+      rejectDialog.close();
+      selectCase(active);
+      showToast('Vorgang wurde abgelehnt.');
+    });
+
+    const uploadDialog = document.querySelector('#upload-dialog');
+    document.querySelectorAll('.open-upload').forEach((button) => button.addEventListener('click', () => uploadDialog.showModal()));
+
+    document.querySelectorAll('[data-close-dialog]').forEach((button) => {
+      button.addEventListener('click', () => document.querySelector('#' + button.dataset.closeDialog).close());
+    });
+
+    [uploadDialog, rejectDialog].forEach((dialog) => {
+      dialog.addEventListener('click', (event) => {
+        if (event.target === dialog) dialog.close();
+      });
+    });
+
+    const uploadFile = document.querySelector('#upload-file');
+    const submitUpload = document.querySelector('#submit-upload');
+    uploadFile.addEventListener('change', () => {
+      submitUpload.disabled = !uploadFile.files?.length;
+      if (uploadFile.files?.length) submitUpload.textContent = uploadFile.files[0].name + ' einreichen';
+    });
+
+    submitUpload.addEventListener('click', () => {
+      uploadDialog.close();
+      navigate('pruefliste');
+      selectCase(document.querySelector('#case-klaus'));
+      showToast('Beleg angenommen. Er braucht eine Prüfung.');
+      uploadFile.value = '';
+      submitUpload.disabled = true;
+      submitUpload.textContent = 'Einreichen';
+    });
+
+    document.querySelector('#create-package').addEventListener('click', (event) => {
+      event.currentTarget.disabled = true;
+      event.currentTarget.textContent = 'Paket wurde erzeugt';
+      showToast('DATEV-Paket mit 3 Belegen wurde zum Download vorbereitet.');
+    });
+
+    document.querySelectorAll('.prototype-form').forEach((form) => {
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        showToast(event.currentTarget.closest('#firma') ? 'Firmendaten gespeichert.' : 'Mail-Eingang gespeichert.');
+      });
+    });
+
+    document.querySelector('#logout').addEventListener('click', () => navigate('anmeldung'));
+    document.querySelectorAll('[data-auth-state]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const failed = button.dataset.authState === 'failed';
+        document.querySelector('#auth-title').textContent = failed
+          ? 'Die Anmeldung ist fehlgeschlagen.'
+          : 'Dein Konto ist nicht freigeschaltet.';
+        document.querySelector('#auth-copy').textContent = failed
+          ? 'Authentik hat die Anfrage abgelehnt oder war nicht erreichbar. Versuche die Anmeldung erneut.'
+          : 'Dem Konto fehlt die Gruppe InvoiceMatcher. Die Administration von portal.tstieh.de kann sie vergeben.';
+      });
+    });
+    document.querySelector('#login').addEventListener('click', () => {
+      header.hidden = false;
+      navigate('uebersicht');
+      showToast('Für die Preview wurde die Authentik-Anmeldung simuliert.');
+    });
+  </script>
+</body>
+</html>

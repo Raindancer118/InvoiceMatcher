@@ -6,10 +6,9 @@ const { kompakt = false } = Astro.props;
 <form class="dropzone" method="post" action="/belege/einreichen" enctype="multipart/form-data">
   <h3>Beleg einreichen</h3>
   {!kompakt && <p>PDF, ZUGFeRD oder XRechnung hierher ziehen</p>}
-  <input type="file" name="datei" accept=".pdf,.xml,application/pdf,application/xml" required hidden id="datei" />
-  <label class="btn btn-primary" for="datei">Datei auswählen</label>
-  <button class="btn btn-ghost" type="submit" hidden id="absenden">Einreichen</button>
-  <p class="gewaehlt" hidden id="gewaehlt"></p>
+  <input type="file" name="datei" accept=".pdf,.xml,application/pdf,application/xml" aria-label="Beleg auswählen" required id="datei" />
+  <button class="btn btn-primary" type="submit" id="absenden">Einreichen</button>
+  <p class="gewaehlt" role="status" hidden id="gewaehlt"></p>
 </form>
 
 <script>
@@ -20,6 +19,12 @@ const { kompakt = false } = Astro.props;
 
   function uebernehmen(dateien: FileList | null) {
     if (!dateien || dateien.length === 0) return;
+    if (dateien.length !== 1 || !/\.(pdf|xml)$/i.test(dateien[0]!.name) || dateien[0]!.size === 0) {
+      feld.value = '';
+      gewaehlt.textContent = 'Bitte genau eine nicht leere PDF- oder XML-Datei auswählen.';
+      gewaehlt.hidden = false;
+      return;
+    }
     feld.files = dateien;
     gewaehlt.textContent = dateien[0]!.name;
     gewaehlt.hidden = false;
@@ -27,6 +32,16 @@ const { kompakt = false } = Astro.props;
   }
 
   feld.addEventListener('change', () => uebernehmen(feld.files));
+  flaeche.addEventListener('submit', () => {
+    absenden.disabled = true;
+    absenden.textContent = 'Beleg wird verarbeitet …';
+    flaeche.setAttribute('aria-busy', 'true');
+  });
+  window.addEventListener('pageshow', () => {
+    absenden.disabled = false;
+    absenden.textContent = 'Einreichen';
+    flaeche.removeAttribute('aria-busy');
+  });
 
   // Ziehen und Ablegen ohne Bibliothek; der Klickweg bleibt vollstaendig erhalten.
   for (const name of ['dragenter', 'dragover'] as const) {
