@@ -26,6 +26,7 @@ body { margin:0; background:var(--surface-page); color:var(--text); font:15px/1.
 [hidden] { display:none !important; }
 a { color:var(--accent); }
 button,input,select,textarea { font:inherit; }
+input[type=checkbox],input[type=radio] { accent-color:var(--archive); }
 button,a,input,select,textarea,summary { touch-action:manipulation; }
 :focus-visible { outline:3px solid var(--accent); outline-offset:4px; }
 h1,h2,h3 { font-family:var(--font-display); line-height:1.1; margin:0; }
@@ -47,7 +48,9 @@ p { overflow-wrap:anywhere; }
 .topnav a:hover { background:var(--surface-sunken); }
 .topnav a[aria-current] { color:var(--text); border-color:#f05a38; }
 .user { position:relative; margin:auto 1.5rem auto auto; color:var(--text-2); font-size:.85rem; }
-.new-invoice { align-self:center; margin-left:auto; margin-right:1rem; background:var(--accent); white-space:nowrap; }
+.new-invoice { align-self:center; margin-left:auto; margin-right:1rem; white-space:nowrap; }
+.btn-primary.new-invoice { background:var(--accent); }
+.btn-primary.new-invoice:hover { background:#8c2717; }
 .user summary { display:flex; align-items:center; gap:.6rem; min-height:48px; cursor:pointer; }
 .avatar { display:grid; place-items:center; width:32px; height:32px; border:1px solid var(--border-strong); border-radius:50%; font:12px var(--font-data); }
 .abmelden { position:absolute; right:0; top:100%; padding:1rem 1.5rem; background:var(--surface-card); border:1px solid var(--border-strong); color:var(--text); min-width:140px; text-decoration:none; }
