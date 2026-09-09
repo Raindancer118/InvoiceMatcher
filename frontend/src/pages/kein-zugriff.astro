@@ -5,7 +5,7 @@ import { config } from '../lib/config';
 
 const sitzung = await sitzungLesen(Astro.session);
 ---
-<Grundgeruest titel="Kein Zugriff">
+<Grundgeruest titel="Kein Zugriff" benutzer={sitzung?.benutzer.name}>
   <p class="greeting">Angemeldet als <strong>{sitzung?.benutzer.name ?? 'unbekannt'}</strong>.</p>
   <h1 class="headline">Dein Konto ist für den InvoiceMatcher nicht freigeschaltet.</h1>
   <p class="sub">
