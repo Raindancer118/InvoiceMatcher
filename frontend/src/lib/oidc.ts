@@ -84,7 +84,7 @@ export async function anmeldungAbschliessen(
     refreshToken: token.refresh_token,
     idToken: token.id_token!,
     laeuftAb: Math.floor(Date.now() / 1000) + (token.expires_in ?? 3600),
-    name: (angaben.name as string) ?? (angaben.preferred_username as string) ?? 'Unbekannt',
+    name: nameAus(angaben),
     email: angaben.email as string | undefined,
     gruppen: gruppenAus(angaben),
   };
@@ -101,7 +101,7 @@ export async function tokenErneuern(refreshToken: string): Promise<Anmeldeergebn
       refreshToken: token.refresh_token ?? refreshToken,
       idToken: token.id_token ?? '',
       laeuftAb: Math.floor(Date.now() / 1000) + (token.expires_in ?? 3600),
-      name: (angaben?.name as string) ?? 'Unbekannt',
+      name: nameAus(angaben ?? {}),
       email: angaben?.email as string | undefined,
       gruppen: gruppenAus(angaben ?? {}),
     };
@@ -122,4 +122,16 @@ export async function abmeldeZiel(idToken: string): Promise<URL> {
 function gruppenAus(angaben: Record<string, unknown>): string[] {
   const gruppen = angaben.groups;
   return Array.isArray(gruppen) ? gruppen.map(String) : [];
+}
+
+/**
+ * 'name' und 'preferred_username' sind bei Authentik leere Strings statt fehlender Felder,
+ * wenn im Konto kein Anzeigename hinterlegt ist. '??' faengt das nicht ab (nur null/undefined),
+ * darum hier eine eigene Leer-Pruefung statt verketteter '??'.
+ */
+function nameAus(angaben: Record<string, unknown>): string {
+  const name = typeof angaben.name === 'string' ? angaben.name.trim() : '';
+  if (name) return name;
+  const nutzername = typeof angaben.preferred_username === 'string' ? angaben.preferred_username.trim() : '';
+  return nutzername || 'Unbekannt';
 }
