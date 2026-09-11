@@ -84,11 +84,11 @@ invoicematcher:
   # ist die Einstellungen-Oberflaeche massgeblich (AiSettingsService), siehe SettingsSeeder.
   ai:
     fast:
-      model: ${INVOICEMATCHER_AI_FAST_MODEL:llama-3.3-70b-versatile}
+      model: ${INVOICEMATCHER_AI_FAST_MODEL:openai/gpt-oss-120b}
       # Kommagetrennter Schluessel-Pool (GROQ_API_KEY_1..4 im Projektvault).
       api-keys: ${INVOICEMATCHER_AI_FAST_API_KEYS:}
     smart:
-      model: ${INVOICEMATCHER_AI_SMART_MODEL:gemini-2.5-pro}
+      model: ${INVOICEMATCHER_AI_SMART_MODEL:gemini-flash-latest}
       # Kommagetrennter Schluessel-Pool (GOOGLE_API_KEY_1..4 im Projektvault).
       api-keys: ${INVOICEMATCHER_AI_SMART_API_KEYS:}
 

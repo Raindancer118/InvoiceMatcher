@@ -21,8 +21,8 @@ import java.util.List;
 public record AiProperties(Tier fast, Tier smart) {
 
     public AiProperties {
-        fast = fast == null ? new Tier("llama-3.3-70b-versatile", List.of()) : fast;
-        smart = smart == null ? new Tier("gemini-2.5-pro", List.of()) : smart;
+        fast = fast == null ? new Tier("openai/gpt-oss-120b", List.of()) : fast;
+        smart = smart == null ? new Tier("gemini-flash-latest", List.of()) : smart;
     }
 
     public record Tier(String model, List<String> apiKeys) {
