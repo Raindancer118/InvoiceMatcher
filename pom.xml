@@ -13,7 +13,7 @@
 
     <groupId>de.pegasus.invoicematcher</groupId>
     <artifactId>InvoiceMatcher</artifactId>
-    <version>0.6.0</version>
+    <version>0.7.0</version>
     <name>InvoiceMatcher</name>
     <description>Belegklassifikation und DATEV-Vorkontierung fuer Eingangs- und Ausgangsrechnungen</description>
 
@@ -26,7 +26,15 @@
         <commons-text.version>1.15.0</commons-text.version>
         <sqlite.version>3.53.2.1</sqlite.version>
         <greenmail.version>2.1.13</greenmail.version>
+        <ai-gateway.version>0.2.0</ai-gateway.version>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>packages-releases</id>
+            <url>https://packages.tstieh.de/releases</url>
+        </repository>
+    </repositories>
 
     <dependencies>
         <dependency>
@@ -90,6 +98,13 @@
             <groupId>com.opencsv</groupId>
             <artifactId>opencsv</artifactId>
             <version>${opencsv.version}</version>
+        </dependency>
+
+        <!-- Multi-Provider-KI-Anbindung (Gemini-Vision, Revolver-Key-Pool) fuer den OCR-Ausweichweg -->
+        <dependency>
+            <groupId>io.github.raindancer118</groupId>
+            <artifactId>ai-gateway</artifactId>
+            <version>${ai-gateway.version}</version>
         </dependency>
 
         <dependency>

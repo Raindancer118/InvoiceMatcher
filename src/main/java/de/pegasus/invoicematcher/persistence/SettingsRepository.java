@@ -1,11 +1,15 @@
 package de.pegasus.invoicematcher.persistence;
 
+import de.pegasus.invoicematcher.config.AccountingProperties;
+import de.pegasus.invoicematcher.config.AiProperties;
 import de.pegasus.invoicematcher.config.CompanyProperties;
 import de.pegasus.invoicematcher.config.MailIntakeProperties;
+import de.pegasus.invoicematcher.config.PartnerProperties;
 import de.pegasus.invoicematcher.config.SecretCipher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.unit.DataSize;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -25,6 +29,7 @@ public class SettingsRepository {
 
     private final JdbcClient jdbc;
     private final SecretCipher cipher;
+    private final JsonMapper json = JsonMapper.builder().build();
 
     public SettingsRepository(JdbcClient jdbc, SecretCipher cipher) {
         this.jdbc = jdbc;
@@ -123,5 +128,76 @@ public class SettingsRepository {
         return kommagetrennt == null || kommagetrennt.isBlank()
                 ? List.of()
                 : Arrays.stream(kommagetrennt.split(",")).map(String::strip).filter(s -> !s.isEmpty()).toList();
+    }
+
+    public Optional<AccountingProperties> loadAccounting() {
+        return jdbc.sql("SELECT json FROM accounting_settings WHERE id = 1")
+                .query((row, i) -> json.readValue(row.getString("json"), AccountingProperties.class))
+                .optional();
+    }
+
+    public void saveAccounting(AccountingProperties accounting) {
+        jdbc.sql("""
+                INSERT INTO accounting_settings (id, json) VALUES (1, :json)
+                ON CONFLICT (id) DO UPDATE SET json = excluded.json
+                """)
+                .param("json", json.writeValueAsString(accounting))
+                .update();
+    }
+
+    public Optional<PartnerProperties> loadPartners() {
+        return jdbc.sql("SELECT json FROM partner_settings WHERE id = 1")
+                .query((row, i) -> json.readValue(row.getString("json"), PartnerProperties.class))
+                .optional();
+    }
+
+    public void savePartners(PartnerProperties partners) {
+        jdbc.sql("""
+                INSERT INTO partner_settings (id, json) VALUES (1, :json)
+                ON CONFLICT (id) DO UPDATE SET json = excluded.json
+                """)
+                .param("json", json.writeValueAsString(partners))
+                .update();
+    }
+
+    public Optional<AiProperties> loadAi() {
+        return jdbc.sql("""
+                SELECT fast_model, fast_api_keys_encrypted, smart_model, smart_api_keys_encrypted
+                FROM ai_settings WHERE id = 1
+                """)
+                .query(this::toAiProperties)
+                .optional();
+    }
+
+    public void saveAi(AiProperties ai) {
+        jdbc.sql("""
+                INSERT INTO ai_settings (id, fast_model, fast_api_keys_encrypted, smart_model,
+                                          smart_api_keys_encrypted)
+                VALUES (1, :fastModel, :fastKeys, :smartModel, :smartKeys)
+                ON CONFLICT (id) DO UPDATE SET
+                    fast_model               = excluded.fast_model,
+                    fast_api_keys_encrypted  = excluded.fast_api_keys_encrypted,
+                    smart_model              = excluded.smart_model,
+                    smart_api_keys_encrypted = excluded.smart_api_keys_encrypted
+                """)
+                .param("fastModel", ai.fast().model())
+                .param("fastKeys", encryptKeys(ai.fast().apiKeys()))
+                .param("smartModel", ai.smart().model())
+                .param("smartKeys", encryptKeys(ai.smart().apiKeys()))
+                .update();
+    }
+
+    private AiProperties toAiProperties(ResultSet row, int rowNumber) throws SQLException {
+        return new AiProperties(
+                new AiProperties.Tier(row.getString("fast_model"), decryptKeys(row.getString("fast_api_keys_encrypted"))),
+                new AiProperties.Tier(row.getString("smart_model"), decryptKeys(row.getString("smart_api_keys_encrypted"))));
+    }
+
+    private String encryptKeys(List<String> keys) {
+        return keys == null || keys.isEmpty() ? null : cipher.encrypt(String.join(",", keys));
+    }
+
+    private List<String> decryptKeys(String encrypted) {
+        return encrypted == null ? List.of() : absenderListe(cipher.decrypt(encrypted));
     }
 }

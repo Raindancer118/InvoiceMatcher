@@ -2,11 +2,12 @@ package de.pegasus.invoicematcher.export.datev;
 
 import de.pegasus.invoicematcher.config.AccountingProperties;
 import de.pegasus.invoicematcher.domain.BookingLine;
-import de.pegasus.invoicematcher.masterdata.account.TaxKeys;
+import de.pegasus.invoicematcher.domain.TaxKeys;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  * Ermittelt den Steuersatz einer Buchungszeile.
@@ -22,10 +23,10 @@ public class VatRateResolver {
     private static final BigDecimal RATE_REDUCED = new BigDecimal("7");
     private static final BigDecimal RATE_STANDARD = new BigDecimal("19");
 
-    private final AccountingProperties properties;
+    private final Supplier<AccountingProperties> accountingSettings;
 
-    public VatRateResolver(AccountingProperties properties) {
-        this.properties = properties;
+    public VatRateResolver(Supplier<AccountingProperties> accountingSettings) {
+        this.accountingSettings = accountingSettings;
     }
 
     /** Leerer Rueckgabewert heisst: der Satz ist aus den vorliegenden Angaben nicht ableitbar. */
@@ -46,6 +47,7 @@ public class VatRateResolver {
 
     /** Automatikkonten wie 8400 oder 3300 tragen den Steuersatz in ihrer Kontodefinition. */
     private Optional<BigDecimal> fromAccount(int account) {
+        AccountingProperties properties = accountingSettings.get();
         return java.util.stream.Stream.concat(properties.revenue().stream(), properties.defaultExpense().stream())
                 .filter(candidate -> candidate.account() == account)
                 .findFirst()

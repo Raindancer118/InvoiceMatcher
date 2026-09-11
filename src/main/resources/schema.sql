@@ -58,3 +58,26 @@ CREATE TABLE IF NOT EXISTS mail_intake_settings (
     max_attachment_size_kb INTEGER NOT NULL,
     allowed_senders        TEXT    NOT NULL
 );
+
+-- Kontenrahmen und Geschaeftspartnerliste, die die KI-Klassifikation als Kontext bekommt. Als
+-- Ganzes abgelegtes JSON statt einzelner Spalten, weil die Form (Liste von Warengruppen bzw.
+-- Partnern) nicht flach in Spalten passt - dieselbe Technik wie review_case.report_json.
+CREATE TABLE IF NOT EXISTS accounting_settings (
+    id   INTEGER PRIMARY KEY CHECK (id = 1),
+    json TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS partner_settings (
+    id   INTEGER PRIMARY KEY CHECK (id = 1),
+    json TEXT NOT NULL
+);
+
+-- KI-Modellwahl je Eskalationsstufe (FAST/SMART). Schluessel wie das Mail-Passwort
+-- AES-256-GCM-verschluesselt (SecretCipher), NULL heisst kein Schluessel hinterlegt.
+CREATE TABLE IF NOT EXISTS ai_settings (
+    id                       INTEGER PRIMARY KEY CHECK (id = 1),
+    fast_model               TEXT NOT NULL,
+    fast_api_keys_encrypted  TEXT,
+    smart_model              TEXT NOT NULL,
+    smart_api_keys_encrypted TEXT
+);

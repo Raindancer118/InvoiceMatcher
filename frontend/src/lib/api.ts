@@ -87,6 +87,35 @@ export interface MailEingangEingabe extends Omit<MailEingang, 'passwortGesetzt'>
   passwort: string;
 }
 
+/** Kontenrahmen bzw. Geschaeftspartnerliste als Roh-JSON - jederzeit austauschbar. */
+export interface JsonEinstellung {
+  json: string;
+}
+
+export interface Ki {
+  fastModell: string;
+  fastSchluesselGesetzt: boolean;
+  fastSchluesselAnzahl: number;
+  smartModell: string;
+  smartSchluesselGesetzt: boolean;
+  smartSchluesselAnzahl: number;
+}
+
+/** Wie {@link Ki}, aber mit den Schluesseln zum Speichern statt den Gesetzt-Merkern. */
+export interface KiEingabe {
+  fastModell: string;
+  fastSchluessel: string[];
+  smartModell: string;
+  smartSchluessel: string[];
+}
+
+export interface KiTestErgebnis {
+  fastOk: boolean;
+  fastMeldung: string;
+  smartOk: boolean;
+  smartMeldung: string;
+}
+
 export class ApiFehler extends Error {
   constructor(readonly status: number, message: string) {
     super(message);
@@ -177,5 +206,39 @@ export const api = {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(mail),
+    }),
+
+  kontenrahmen: (token: string) => json<JsonEinstellung>('/api/v1/einstellungen/kontenrahmen', token),
+
+  kontenrahmenSpeichern: (token: string, kontenrahmen: JsonEinstellung) =>
+    json<JsonEinstellung>('/api/v1/einstellungen/kontenrahmen', token, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(kontenrahmen),
+    }),
+
+  geschaeftspartner: (token: string) => json<JsonEinstellung>('/api/v1/einstellungen/geschaeftspartner', token),
+
+  geschaeftspartnerSpeichern: (token: string, geschaeftspartner: JsonEinstellung) =>
+    json<JsonEinstellung>('/api/v1/einstellungen/geschaeftspartner', token, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(geschaeftspartner),
+    }),
+
+  kiEinstellungen: (token: string) => json<Ki>('/api/v1/einstellungen/ki', token),
+
+  kiEinstellungenSpeichern: (token: string, ki: KiEingabe) =>
+    json<Ki>('/api/v1/einstellungen/ki', token, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(ki),
+    }),
+
+  kiVerbindungTesten: (token: string, ki: KiEingabe) =>
+    json<KiTestErgebnis>('/api/v1/einstellungen/ki/test', token, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(ki),
     }),
 };

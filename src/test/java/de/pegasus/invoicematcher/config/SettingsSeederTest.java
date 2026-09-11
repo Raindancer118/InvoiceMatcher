@@ -1,6 +1,7 @@
 package de.pegasus.invoicematcher.config;
 
 import com.zaxxer.hikari.HikariDataSource;
+import de.pegasus.invoicematcher.domain.Direction;
 import de.pegasus.invoicematcher.persistence.SettingsRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +13,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.util.unit.DataSize;
 
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -32,6 +34,13 @@ class SettingsSeederTest {
     private static final MailIntakeProperties VORGABE_MAIL = new MailIntakeProperties(false, "imaps",
             "mx.volantic.de", 993, "belege@volantic.de", null, "INBOX", "Verarbeitet", "Fehlgeschlagen",
             Duration.ofMinutes(5), 50, DataSize.ofMegabytes(20), List.of());
+    private static final AccountingProperties VORGABE_ACCOUNTING = new AccountingProperties(
+            new BigDecimal("800.00"), new BigDecimal("0.01"), List.of(), List.of(), List.of(), List.of());
+    private static final PartnerProperties VORGABE_PARTNERS = new PartnerProperties(
+            new PartnerProperties.Diverse(70001, 10001), List.of());
+    private static final AiProperties VORGABE_AI = new AiProperties(
+            new AiProperties.Tier("llama-3.3-70b-versatile", List.of()),
+            new AiProperties.Tier("gemini-2.5-pro", List.of()));
 
     private HikariDataSource dataSource;
     private SettingsRepository repository;
@@ -59,19 +68,27 @@ class SettingsSeederTest {
         dataSource.close();
     }
 
+    private SettingsSeeder seeder() {
+        return new SettingsSeeder(repository, VORGABE_FIRMA, VORGABE_MAIL, VORGABE_ACCOUNTING, VORGABE_PARTNERS,
+                VORGABE_AI);
+    }
+
     @Test
-    void seedsBothTablesFromTheDefaultsWhenEmpty() {
-        new SettingsSeeder(repository, VORGABE_FIRMA, VORGABE_MAIL).run(null);
+    void seedsAllTablesFromTheDefaultsWhenEmpty() {
+        seeder().run(null);
 
         assertThat(repository.loadCompany().orElseThrow().name()).isEqualTo("Muster zu Testzwecken GmbH");
         assertThat(repository.loadMailIntake().orElseThrow().host()).isEqualTo("mx.volantic.de");
+        assertThat(repository.loadAccounting().orElseThrow().gwgLimit()).isEqualByComparingTo("800.00");
+        assertThat(repository.loadPartners().orElseThrow().diverse().creditorStart()).isEqualTo(70001);
+        assertThat(repository.loadAi().orElseThrow().fast().model()).isEqualTo("llama-3.3-70b-versatile");
     }
 
     @Test
     void leavesAnAlreadyChangedCompanySettingUntouched() {
         repository.saveCompany(new CompanyProperties("Echtes Unternehmen GmbH", "DE999999999", "1"));
 
-        new SettingsSeeder(repository, VORGABE_FIRMA, VORGABE_MAIL).run(null);
+        seeder().run(null);
 
         assertThat(repository.loadCompany().orElseThrow().name()).isEqualTo("Echtes Unternehmen GmbH");
     }
@@ -82,8 +99,38 @@ class SettingsSeederTest {
                 "belege@echt.example", null, "INBOX", "Verarbeitet", "Fehlgeschlagen", Duration.ofMinutes(5), 50,
                 DataSize.ofMegabytes(20), List.of()));
 
-        new SettingsSeeder(repository, VORGABE_FIRMA, VORGABE_MAIL).run(null);
+        seeder().run(null);
 
         assertThat(repository.loadMailIntake().orElseThrow().host()).isEqualTo("echter-server.example");
+    }
+
+    @Test
+    void leavesAnAlreadyChangedAccountingSettingUntouched() {
+        repository.saveAccounting(new AccountingProperties(new BigDecimal("1200.00"), new BigDecimal("0.02"),
+                List.of(), List.of(), List.of(), List.of()));
+
+        seeder().run(null);
+
+        assertThat(repository.loadAccounting().orElseThrow().gwgLimit()).isEqualByComparingTo("1200.00");
+    }
+
+    @Test
+    void leavesAnAlreadyChangedPartnerSettingUntouched() {
+        repository.savePartners(new PartnerProperties(new PartnerProperties.Diverse(80001, 20001),
+                List.of(new PartnerProperties.KnownPartner(80001, "Echter Partner", Direction.EINGANG, null, null))));
+
+        seeder().run(null);
+
+        assertThat(repository.loadPartners().orElseThrow().diverse().creditorStart()).isEqualTo(80001);
+    }
+
+    @Test
+    void leavesAnAlreadyChangedAiSettingUntouched() {
+        repository.saveAi(new AiProperties(new AiProperties.Tier("echtes-modell", List.of("key-1")),
+                new AiProperties.Tier("gemini-2.5-pro", List.of())));
+
+        seeder().run(null);
+
+        assertThat(repository.loadAi().orElseThrow().fast().model()).isEqualTo("echtes-modell");
     }
 }

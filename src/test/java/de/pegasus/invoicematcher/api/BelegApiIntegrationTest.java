@@ -230,11 +230,7 @@ class BelegApiIntegrationTest {
     }
 
     @Test
-    void publishesTheRuleSetAndMasterDataForTheFrontend() throws Exception {
-        mockMvc.perform(get("/api/v1/stammdaten/regeln"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value("1.1"));
-
+    void publishesMasterDataForTheFrontend() throws Exception {
         mockMvc.perform(get("/api/v1/stammdaten/partner"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.konto == 70101)].name").value("Friedrich Klausmuster"));

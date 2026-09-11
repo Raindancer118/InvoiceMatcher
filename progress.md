@@ -1,14 +1,24 @@
 # Progress
 
 ## Umgesetzt
-- [x] Regelwerk als Ablauflogik (`IRule` + `RuleEngine`, eine Klasse je Regel)
+- [x] **KI-Klassifikation ersetzt das deterministische Regelwerk vollstaendig** (0.7.0): das alte
+      `IRule`/`RuleEngine`-Regelwerk und das Keyword-/Fuzzy-Matching in `masterdata/` sind
+      entfernt. `ClassificationService` schickt Beleg, Kontenrahmen und Geschaeftspartnerliste
+      als Prompt an eine KI (`classification/ai`: `InvoiceClassificationPrompt`,
+      `AiClassificationResponseParser`, `TieredInvoiceClassifier`) und uebernimmt deren
+      Entscheidung direkt - document_type, Personenkonto, Sachkonto/Buchungszeilen. Modell-
+      Tiering ueber `ai-gateway`: Groq zuerst (schnell, kein Bildeingang), bei gescannten
+      Belegen oder Fehlschlag Gemini (vision-faehig, liest auch handschriftliche Titel direkt).
+      Schlaegt die KI komplett fehl, geht der Beleg zur manuellen Pruefung statt verworfen zu
+      werden. Personenkonto-Fallback fuer unbekannte Partner bleibt deterministisch
+      (`DiverseAccountRange`, 26 Sammelkonten nach Anfangsbuchstabe).
+- [x] Kontenrahmen, Geschaeftspartnerliste und KI-Modellwahl sind jederzeit ueber die
+      Einstellungen-Oberflaeche editierbar (Roh-JSON bzw. Modell+Schluessel), ohne Neustart -
+      `AccountingSettingsService`/`PartnerSettingsService`/`AiSettingsService`, gleiches
+      Seed-dann-DB-Prinzip wie Firma/Mail-Eingang. "Verbindung testen"-Knopf prueft Modell/
+      Schluessel live (`AiConnectionTester`) vor dem Speichern.
 - [x] Belegimport PDF, ZUGFeRD/Factur-X und XRechnung (UBL + CII)
 - [x] Layouterhaltende PDF-Textextraktion mit eigenen Feldextraktoren
-- [x] Datenvalidierung: Pflichtangaben (§14 UStG), Rechenprobe, GWG-Grenze
-- [x] Stammdaten aus Konfiguration und aus DATEV-DTVF-Export (CSV)
-- [x] Personenkontenfindung inkl. Diverse-Konten nach Anfangsbuchstabe
-- [x] Sachkontenfindung über den Positionstext, Zusammenfassung der Buchungszeilen
-- [x] Konfidenzwert als Steuergröße für die automatische Freigabe
 - [x] Human-in-the-Loop: Prüfliste, Freigabe mit Korrektur, Ablehnung
 - [x] REST-API für das Frontend (`/api/v1`) inkl. CORS und Problem-Details
 - [x] Mailbenachrichtigung für offene Prüfvorgänge (abschaltbar)
@@ -19,12 +29,11 @@
       Belegsatzdaten, Belegbild), validiert gegen die offiziellen DATEV-Schemata
 - [x] Exportvermerk je Vorgang gegen doppelte Buchung
 - [x] Persistenz in SQLite: Pruefvorgaenge und Belegbilder ueberstehen einen Neustart
-- [x] OCR-Stufe fuer gescannte Belege (Tesseract), layouterhaltend ueber die Wortrahmen -
-      ein Scan wird identisch kontiert wie das Original und geht zur Pruefung
+- [x] OCR-Stufe fuer gescannte Belege (Tesseract), layouterhaltend ueber die Wortrahmen
 - [x] Gemini-Ausweichweg fuer die Zeichenerkennung: wird nur angefragt, wenn Tesseract keinen
-      bekannten Belegtitel findet (typischerweise Handschrift) - standardmaessig AUS
-      (`invoicematcher.ocr.gemini.enabled`), da das Belegbild dann an Google geht und ein AVV
-      noetig ist
+      bekannten Belegtitel findet (typischerweise Handschrift) - immer aktiv, nutzt denselben
+      Schluessel-Pool wie die KI-Klassifikation (`invoicematcher.ai.smart`); ohne hinterlegten
+      Schluessel meldet sich der Ausweichweg einfach als nicht verfuegbar
 
 - [x] Belegbild zum Pruefvorgang ueber die API abrufbar (`GET /api/v1/pruefungen/{id}/beleg`)
 - [x] API gegen Authentik abgesichert (JWT, Gruppenzwang, Healthcheck bleibt frei)
@@ -39,8 +48,17 @@
 ## Offen
 - [x] Astro-Frontend gegen `/api/v1`: Uebersicht, Pruefliste, Vorgangsdetail mit Belegbild,
       Freigabe/Ablehnung, DATEV-Export - angemeldet ueber Authentik (portal.tstieh.de)
+- [x] Einstellungen-Oberflaeche um Kontenrahmen, Geschaeftspartner und KI-Modellwahl erweitert
+      (Roh-JSON-Editor bzw. Modell/Schluessel-Formular, "Verbindung testen"-Knopf)
 - [ ] Wechsel auf eine Server-Datenbank samt Migrationswerkzeug, sobald mehrere Mandanten
       oder parallele Schreiber dazukommen (Ports `ReviewRepository` und `DocumentStore`
       bleiben unverändert)
+- [ ] DTVF-CSV-Import fuer Geschaeftspartner bewusst nicht auf die neue Settings-Ablage
+      uebertragen (war an `MasterDataConfiguration` gebunden, die mit dem Regelwerk entfallen
+      ist) - Partner werden aktuell nur ueber das JSON-Feld gepflegt
+- [ ] Dedizierte Frontend-Tests fuer die drei neuen Einstellungen-Formulare (Kontenrahmen,
+      Geschaeftspartner, KI) fehlen noch - nur ueber den bestehenden Seiten-Rendertest
+      (`GET /einstellungen`) indirekt abgedeckt; Backend-Seite ist vollstaendig getestet
+      (Repository, Service, REST-API)
 - [ ] Direkte Übertragung an DATEV Unternehmen online (aktuell wird das Paket zum Download
       erzeugt; für den Upload sind Zugangsdaten und der DATEV-Client nötig)

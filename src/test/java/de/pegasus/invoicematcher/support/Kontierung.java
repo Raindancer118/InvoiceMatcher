@@ -1,8 +1,10 @@
 package de.pegasus.invoicematcher.support;
 
 import de.pegasus.invoicematcher.classification.ClassificationService;
-import de.pegasus.invoicematcher.classification.ConfidenceCalculator;
+import de.pegasus.invoicematcher.classification.ai.AiClassificationResponseParser;
+import de.pegasus.invoicematcher.classification.ai.TieredInvoiceClassifier;
 import de.pegasus.invoicematcher.config.AccountingProperties;
+import de.pegasus.invoicematcher.config.AiProperties;
 import de.pegasus.invoicematcher.extraction.ExtractionService;
 import de.pegasus.invoicematcher.config.CompanyProperties;
 import de.pegasus.invoicematcher.config.DatevExportProperties;
@@ -17,25 +19,9 @@ import de.pegasus.invoicematcher.export.datev.DocumentXmlWriter;
 import de.pegasus.invoicematcher.export.datev.LedgerXmlWriter;
 import de.pegasus.invoicematcher.export.datev.VatRateResolver;
 import de.pegasus.invoicematcher.config.PartnerProperties;
-import de.pegasus.invoicematcher.masterdata.account.AccountAssignmentService;
-import de.pegasus.invoicematcher.masterdata.account.DefaultExpenseAccountResolver;
-import de.pegasus.invoicematcher.masterdata.account.FixedAssetIndicator;
-import de.pegasus.invoicematcher.masterdata.account.KeywordExpenseAccountResolver;
-import de.pegasus.invoicematcher.masterdata.account.RevenueAccountResolver;
 import de.pegasus.invoicematcher.config.ReviewProperties;
-import de.pegasus.invoicematcher.masterdata.partner.InMemoryPartnerRepository;
 import de.pegasus.invoicematcher.review.InMemoryReviewRepository;
 import de.pegasus.invoicematcher.review.ReviewService;
-import de.pegasus.invoicematcher.masterdata.partner.PartnerResolver;
-import de.pegasus.invoicematcher.rules.BookingLineAggregator;
-import de.pegasus.invoicematcher.rules.RuleEngine;
-import de.pegasus.invoicematcher.rules.impl.ArithmeticRule;
-import de.pegasus.invoicematcher.rules.impl.BookingLineRule;
-import de.pegasus.invoicematcher.rules.impl.DirectionRule;
-import de.pegasus.invoicematcher.rules.impl.FixedAssetRule;
-import de.pegasus.invoicematcher.rules.impl.InvoiceTitleRule;
-import de.pegasus.invoicematcher.rules.impl.MandatoryFieldsRule;
-import de.pegasus.invoicematcher.rules.impl.PersonenkontoRule;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.env.YamlPropertySourceLoader;
 import org.springframework.core.env.PropertySource;
@@ -48,8 +34,12 @@ import java.util.List;
 
 /**
  * Baut den produktiven Kontierungsrahmen fuer Unit-Tests auf - aus derselben
- * {@code application.yml}, die auch die Anwendung nutzt. So testen die Faelle den echten
- * Kontenrahmen und nicht eine im Test nachgebaute Kopie.
+ * {@code application.yml}, die auch die Anwendung nutzt. So testen die Faelle dieselben
+ * Vorgabewerte, mit denen auch die Einstellungen-Ablage beim allerersten Start gefuellt wird.
+ *
+ * <p>Die eigentliche Klassifikation trifft die KI (siehe {@code ClassificationService}); fuer
+ * Tests ohne echten API-Zugriff wird ein {@link TieredInvoiceClassifier} mit einem
+ * {@link FakeHttpTransport} verwendet, siehe {@link #classificationServiceWith}.
  */
 public final class Kontierung {
 
@@ -70,43 +60,35 @@ public final class Kontierung {
         return bind("invoicematcher.partners", PartnerProperties.class);
     }
 
-    public static AccountAssignmentService standardAccountAssignment() {
-        AccountingProperties properties = accountingProperties();
-        return new AccountAssignmentService(List.of(
-                new RevenueAccountResolver(properties),
-                new KeywordExpenseAccountResolver(properties),
-                new DefaultExpenseAccountResolver(properties)));
+    public static AiProperties aiProperties() {
+        return bind("invoicematcher.ai", AiProperties.class);
     }
 
-    public static FixedAssetIndicator standardFixedAssetIndicator() {
-        return new FixedAssetIndicator(accountingProperties());
-    }
-
-    public static PartnerResolver standardPartnerResolver() {
-        PartnerProperties properties = partnerProperties();
-        return new PartnerResolver(new InMemoryPartnerRepository(properties.toBusinessPartners()),
-                properties.diverse().toRange());
-    }
-
-    public static RuleEngine standardRuleEngine() {
-        AccountingProperties accounting = accountingProperties();
-        return new RuleEngine(List.of(
-                new InvoiceTitleRule(),
-                new DirectionRule(Kontierung::companyProperties),
-                new MandatoryFieldsRule(),
-                new ArithmeticRule(accounting),
-                new FixedAssetRule(standardFixedAssetIndicator(), accounting),
-                new PersonenkontoRule(standardPartnerResolver()),
-                new BookingLineRule(new BookingLineAggregator(standardAccountAssignment()), accounting)));
-    }
-
+    /**
+     * Nutzt {@link CannedAiResponses} statt eines echten KI-Zugriffs: diese Tests pruefen
+     * Downstream-Verhalten (Export, Pruefablauf, Persistenz), nicht die fachliche Richtigkeit
+     * einer echten KI-Entscheidung. Fuer einen echten Anfrageversuch (ohne Schluessel im
+     * Testumfeld = immer "nicht verfuegbar") siehe {@link #classificationServiceWithLiveAi}.
+     */
     public static ClassificationService standardClassificationService() {
         return classificationServiceWith(ExtractionService.standard());
     }
 
     /** Derselbe Dienst mit einer eigenen Extraktion, etwa der vorgeschalteten Zeichenerkennung. */
     public static ClassificationService classificationServiceWith(ExtractionService extraction) {
-        return new ClassificationService(extraction, standardRuleEngine(), new ConfidenceCalculator());
+        return classificationServiceWith(extraction, CannedAiResponses.classifier());
+    }
+
+    /** Fuer Tests, die die KI-Antwort selbst kontrollieren wollen. */
+    public static ClassificationService classificationServiceWith(ExtractionService extraction,
+                                                                   de.pegasus.invoicematcher.classification.ai.InvoiceClassifier classifier) {
+        return new ClassificationService(extraction, classifier, new AiClassificationResponseParser(),
+                Kontierung::companyProperties, Kontierung::accountingProperties, Kontierung::partnerProperties);
+    }
+
+    /** Der echte Klassifikationspfad gegen die in {@code application.yml} konfigurierten Schluessel. */
+    public static ClassificationService classificationServiceWithLiveAi(ExtractionService extraction) {
+        return classificationServiceWith(extraction, new TieredInvoiceClassifier(Kontierung::aiProperties));
     }
 
     public static DatevExportProperties datevProperties() {
@@ -114,7 +96,7 @@ public final class Kontierung {
     }
 
     public static LedgerXmlWriter standardLedgerXmlWriter() {
-        return new LedgerXmlWriter(datevProperties(), new VatRateResolver(accountingProperties()));
+        return new LedgerXmlWriter(datevProperties(), new VatRateResolver(Kontierung::accountingProperties));
     }
 
     public static DocumentXmlWriter standardDocumentXmlWriter() {

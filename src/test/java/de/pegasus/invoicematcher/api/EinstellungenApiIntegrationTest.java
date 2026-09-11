@@ -15,6 +15,7 @@ import org.springframework.web.context.WebApplicationContext;
 import java.nio.file.Path;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -138,5 +139,79 @@ class EinstellungenApiIntegrationTest {
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void kontenrahmenStartsWithTheSeededDefaultsAndIsEditableAsRawJson() throws Exception {
+        mockMvc.perform(get("/api/v1/einstellungen/kontenrahmen"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.json").value(org.hamcrest.Matchers.containsString("Furniere/Kanten")));
+
+        mockMvc.perform(put("/api/v1/einstellungen/kontenrahmen")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"json": "{\\"gwgLimit\\":1200.00,\\"roundingTolerance\\":0.01,\\"revenue\\":[],\\"defaultExpense\\":[],\\"categories\\":[],\\"fixedAssetKeywords\\":[]}"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.json").value(org.hamcrest.Matchers.containsString("1200.0")));
+
+        mockMvc.perform(get("/api/v1/einstellungen/kontenrahmen"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.json").value(org.hamcrest.Matchers.containsString("1200.0")));
+    }
+
+    @Test
+    void malformedKontenrahmenJsonIsRejected() throws Exception {
+        mockMvc.perform(put("/api/v1/einstellungen/kontenrahmen")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"json\": \"das ist kein JSON\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void geschaeftspartnerStartsWithTheSeededDefaultsAndIsEditableAsRawJson() throws Exception {
+        mockMvc.perform(get("/api/v1/einstellungen/geschaeftspartner"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.json").value(org.hamcrest.Matchers.containsString("Friedrich Klausmuster")));
+
+        mockMvc.perform(put("/api/v1/einstellungen/geschaeftspartner")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"json": "{\\"diverse\\":{\\"creditorStart\\":70001,\\"debitorStart\\":10001},\\"known\\":[{\\"konto\\":70201,\\"name\\":\\"Neuer Partner\\",\\"direction\\":\\"EINGANG\\",\\"vatId\\":null,\\"taxNumber\\":null}]}"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.json").value(org.hamcrest.Matchers.containsString("Neuer Partner")));
+    }
+
+    @Test
+    void kiSettingsNeverExposeTheStoredKeysThemselves() throws Exception {
+        mockMvc.perform(put("/api/v1/einstellungen/ki")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"fastModell": "llama-test", "fastSchluessel": ["geheimer-schluessel"],
+                                 "smartModell": "gemini-test", "smartSchluessel": []}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fastModell").value("llama-test"))
+                .andExpect(jsonPath("$.fastSchluesselGesetzt").value(true))
+                .andExpect(jsonPath("$..fastSchluessel").doesNotExist());
+
+        mockMvc.perform(get("/api/v1/einstellungen/ki"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fastModell").value("llama-test"))
+                .andExpect(jsonPath("$.fastSchluesselGesetzt").value(true));
+    }
+
+    @Test
+    void kiConnectionTestReportsFailureWithoutAKey() throws Exception {
+        mockMvc.perform(post("/api/v1/einstellungen/ki/test")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"fastModell": "llama-test", "fastSchluessel": [],
+                                 "smartModell": "gemini-test", "smartSchluessel": []}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fastOk").value(false))
+                .andExpect(jsonPath("$.smartOk").value(false));
     }
 }

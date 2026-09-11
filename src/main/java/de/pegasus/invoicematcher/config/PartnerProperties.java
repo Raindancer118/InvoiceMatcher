@@ -8,14 +8,19 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.util.List;
 
 /**
- * Geschaeftspartner-Stammdaten.
+ * Geschaeftspartner-Stammdaten. Wird der KI-Klassifikation als Kontext-JSON mitgegeben; ein
+ * unbekannter Partner bekommt ueber {@link DiverseAccountRange} deterministisch ein Sammelkonto.
  *
- * @param diverse  Nummernkreise der 26 Sammelkonten je Belegrichtung
- * @param dtvfFile optionaler Pfad zu einem DATEV-DTVF-Export, der die Liste ergaenzt
- * @param known    gepflegte Partner aus der Konfiguration
+ * @param diverse Nummernkreise der 26 Sammelkonten je Belegrichtung
+ * @param known   gepflegte Partner
  */
 @ConfigurationProperties("invoicematcher.partners")
-public record PartnerProperties(Diverse diverse, String dtvfFile, List<KnownPartner> known) {
+public record PartnerProperties(Diverse diverse, List<KnownPartner> known) {
+
+    public PartnerProperties {
+        diverse = diverse == null ? new Diverse(70001, 10001) : diverse;
+        known = known == null ? List.of() : List.copyOf(known);
+    }
 
     public record Diverse(int creditorStart, int debitorStart) {
 

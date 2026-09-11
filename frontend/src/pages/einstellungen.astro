@@ -7,6 +7,9 @@ const meldung = Astro.url.searchParams.get('meldung');
 
 const firma = await api.firma(sitzung.accessToken);
 const mail = await api.mailEingang(sitzung.accessToken);
+const kontenrahmen = await api.kontenrahmen(sitzung.accessToken);
+const geschaeftspartner = await api.geschaeftspartner(sitzung.accessToken);
+const ki = await api.kiEinstellungen(sitzung.accessToken);
 ---
 <Grundgeruest titel="Einstellungen" benutzer={sitzung.benutzer.name} aktiv="einstellungen">
   {meldung && <p class="meldung" role="status">{meldung}</p>}
@@ -14,8 +17,12 @@ const mail = await api.mailEingang(sitzung.accessToken);
   <div class="settings-layout">
   <aside class="settings-aside">
     <h1>Einstellungen</h1>
-    <p>Firmendaten steuern die Belegart. Das Postfach nimmt Anhänge automatisch in denselben Prüfablauf auf.</p>
-    <nav class="settings-nav" aria-label="Einstellungsbereiche"><a href="#firma">Firma</a><a href="#mail">Mail-Eingang</a></nav>
+    <p>Firmendaten steuern die Belegart. Das Postfach nimmt Anhänge automatisch in denselben Prüfablauf auf.
+       Kontenrahmen, Geschäftspartner und KI-Modelle steuern die automatische Kontierung.</p>
+    <nav class="settings-nav" aria-label="Einstellungsbereiche">
+      <a href="#firma">Firma</a><a href="#mail">Mail-Eingang</a><a href="#kontenrahmen">Kontenrahmen</a>
+      <a href="#geschaeftspartner">Geschäftspartner</a><a href="#ki">KI</a>
+    </nav>
   </aside>
   <div>
   <div class="karte" id="firma">
@@ -126,6 +133,82 @@ const mail = await api.mailEingang(sitzung.accessToken);
       </form>
     </div>
   </div>
+
+  <div class="karte" id="kontenrahmen">
+    <h3>Kontenrahmen</h3>
+    <div class="inhalt">
+      <p class="sub" style="max-width:60ch">
+        Warengruppen, Konten und die GWG-Grenze, die die KI-Klassifikation als Kontext bekommt -
+        als Roh-JSON, jederzeit austauschbar, ohne Neustart.
+      </p>
+      <form method="post" action="/einstellungen/kontenrahmen" class="formular formular-json">
+        <label class="feld feld-json">
+          <span>Kontenrahmen (JSON)</span>
+          <textarea name="json" rows="16" spellcheck="false">{kontenrahmen.json}</textarea>
+        </label>
+        <button class="btn btn-primary" type="submit">Kontenrahmen speichern</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="karte" id="geschaeftspartner">
+    <h3>Geschäftspartner</h3>
+    <div class="inhalt">
+      <p class="sub" style="max-width:60ch">
+        Bekannte Kreditoren/Debitoren und die Sammelkonten-Spanne für unbekannte Partner - als
+        Roh-JSON, jederzeit austauschbar.
+      </p>
+      <form method="post" action="/einstellungen/geschaeftspartner" class="formular formular-json">
+        <label class="feld feld-json">
+          <span>Geschäftspartner (JSON)</span>
+          <textarea name="json" rows="16" spellcheck="false">{geschaeftspartner.json}</textarea>
+        </label>
+        <button class="btn btn-primary" type="submit">Geschäftspartner speichern</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="karte" id="ki">
+    <h3>KI-Modelle</h3>
+    <div class="inhalt">
+      <p class="sub" style="max-width:60ch">
+        Die Klassifikation versucht zuerst das schnelle Modell (Groq, kein Bildeingang), bei
+        gescannten Belegen oder wenn das schnelle Modell scheitert das starke Modell (Gemini,
+        vision-fähig). Leere Schlüsselfelder lassen die gespeicherten Schlüssel unverändert.
+      </p>
+      <form method="post" action="/einstellungen/ki" class="formular" id="ki-formular">
+        <label class="feld">
+          <span>Schnelles Modell (Groq)</span>
+          <input type="text" name="fastModell" value={ki.fastModell} required />
+        </label>
+        <label class="feld">
+          <span>Schnelle Schlüssel (Komma-getrennt)</span>
+          <input
+            type="password"
+            name="fastSchluessel"
+            placeholder={ki.fastSchluesselGesetzt ? `${ki.fastSchluesselAnzahl} Schlüssel gesetzt - unverändert lassen` : 'Kein Schlüssel gesetzt'}
+            autocomplete="off"
+          />
+        </label>
+        <label class="feld">
+          <span>Starkes Modell (Gemini)</span>
+          <input type="text" name="smartModell" value={ki.smartModell} required />
+        </label>
+        <label class="feld">
+          <span>Starke Schlüssel (Komma-getrennt)</span>
+          <input
+            type="password"
+            name="smartSchluessel"
+            placeholder={ki.smartSchluesselGesetzt ? `${ki.smartSchluesselAnzahl} Schlüssel gesetzt - unverändert lassen` : 'Kein Schlüssel gesetzt'}
+            autocomplete="off"
+          />
+        </label>
+        <button class="btn btn-primary" type="submit">KI-Einstellungen speichern</button>
+        <button class="btn" type="button" id="ki-test-button">Verbindung testen</button>
+        <p class="ki-test-status" role="status" hidden></p>
+      </form>
+    </div>
+  </div>
   </div></div>
 </Grundgeruest>
 
@@ -142,5 +225,45 @@ const mail = await api.mailEingang(sitzung.accessToken);
   .feld-kasten { flex-direction: row; align-items: center; gap: .6rem; }
   .feld-kasten input { width: auto; }
   .formular .btn { align-self: flex-start; }
+  .formular #ki-test-button { margin-left: .6rem; }
+  .formular-json { grid-template-columns: 1fr; }
+  .feld-json textarea {
+    font: inherit; font-family: var(--font-mono, monospace); font-size: .82rem; color: var(--text);
+    background: var(--surface-page); border: 1px solid var(--border-strong); border-radius: var(--r-md);
+    padding: .7rem; width: 100%; resize: vertical; min-height: 260px;
+  }
+  .feld-json textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .ki-test-status { grid-column: 1/-1; font-size: .85rem; margin: 0; }
   @media(max-width:650px) { .formular { grid-template-columns:1fr; } }
 </style>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('#ki-formular');
+  const testButton = document.querySelector<HTMLButtonElement>('#ki-test-button');
+  const status = document.querySelector<HTMLParagraphElement>('.ki-test-status');
+  if (form && testButton && status) {
+    testButton.addEventListener('click', async () => {
+      testButton.disabled = true;
+      status.hidden = false;
+      status.textContent = 'Verbindung wird geprüft …';
+      try {
+        const response = await fetch('/einstellungen/ki-test', {
+          method: 'POST',
+          body: new FormData(form),
+        });
+        const ergebnis = await response.json();
+        if (ergebnis.fehler) {
+          status.textContent = ergebnis.fehler;
+        } else {
+          status.textContent =
+            'Schnell (Groq): ' + (ergebnis.fastOk ? 'OK' : ergebnis.fastMeldung) +
+            ' · Stark (Gemini): ' + (ergebnis.smartOk ? 'OK' : ergebnis.smartMeldung);
+        }
+      } catch {
+        status.textContent = 'Verbindungstest fehlgeschlagen.';
+      } finally {
+        testButton.disabled = false;
+      }
+    });
+  }
+</script>

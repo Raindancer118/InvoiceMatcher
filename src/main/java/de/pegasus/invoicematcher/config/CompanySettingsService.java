@@ -8,9 +8,9 @@ import java.util.function.Supplier;
 /**
  * Die Firmendaten, live aus der Einstellungen-Ablage statt einmalig beim Start gebunden.
  *
- * <p>Implementiert {@link Supplier}, damit sich diese Bean direkt in Konsumenten wie
- * {@link de.pegasus.invoicematcher.rules.impl.DirectionRule} einsetzen laesst, ohne dass die
- * dortige Fachlogik von diesem Dienst als konkretem Typ abhaengen muss.
+ * <p>Implementiert {@link Supplier}, damit sich diese Bean direkt in Konsumenten wie der
+ * KI-Klassifikation (die den Firmennamen fuer die Eingang/Ausgang-Erkennung braucht) einsetzen
+ * laesst, ohne dass dortige Fachlogik von diesem Dienst als konkretem Typ abhaengen muss.
  */
 @Service
 public class CompanySettingsService implements Supplier<CompanyProperties> {

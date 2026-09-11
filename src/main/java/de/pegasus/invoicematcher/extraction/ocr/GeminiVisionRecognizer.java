@@ -1,9 +1,14 @@
 package de.pegasus.invoicematcher.extraction.ocr;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.github.raindancer118.aigateway.AiProvider;
+import io.github.raindancer118.aigateway.AiProviderException;
+import io.github.raindancer118.aigateway.ChatMessage;
+import io.github.raindancer118.aigateway.ChatRequest;
+import io.github.raindancer118.aigateway.RetryableAiException;
+import io.github.raindancer118.aigateway.http.HttpTransport;
+import io.github.raindancer118.aigateway.http.JdkHttpTransport;
+import io.github.raindancer118.aigateway.provider.GoogleGeminiProvider;
+import io.github.raindancer118.revolver.Revolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,33 +17,28 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.util.Base64;
+import java.util.List;
 import java.util.Locale;
+import java.util.function.Supplier;
 
 /**
- * Zeichenerkennung ueber die Gemini-Vision-API - der Ausweichweg fuer Seiten, deren
- * handschriftliche Ueberschrift Tesseract nicht lesen konnte.
+ * Zeichenerkennung ueber Gemini-Vision - der Ausweichweg fuer Seiten, deren handschriftliche
+ * Ueberschrift Tesseract nicht lesen konnte.
  *
  * <p>Bewusst nicht die primaere Erkennung: das Belegbild verlaesst dafuer den eigenen Server an
- * einen Cloud-Dienst, was einen Auftragsverarbeitungsvertrag mit dem Anbieter voraussetzt und
- * laufende Kosten verursacht. {@link FallbackOcrTextRecognizer} fragt diese Klasse deshalb nur
- * an, wenn die erste Erkennung keinen bekannten Belegtitel gefunden hat.
+ * einen Cloud-Dienst. {@link FallbackOcrTextRecognizer} fragt diese Klasse deshalb nur an, wenn
+ * die erste Erkennung keinen bekannten Belegtitel gefunden hat.
  *
- * <p>Aufgerufen wird die REST-Schnittstelle direkt statt ueber ein SDK - das Projekt haengt
- * damit an keiner zusaetzlichen Bibliothek, nur an {@code HttpClient} und Jackson, die ueber
- * {@code spring-boot-starter-web} ohnehin vorhanden sind.
+ * <p>Modell und Schluessel-Pool werden bei jedem Aufruf frisch ueber {@link #config} gelesen
+ * (typischerweise {@code AiSettingsService.current().smart()}) statt einmalig beim Start
+ * gebunden zu werden - eine Aenderung in den Einstellungen wirkt sofort, ohne Neustart.
  */
 public class GeminiVisionRecognizer implements OcrTextRecognizer {
 
     private static final Logger log = LoggerFactory.getLogger(GeminiVisionRecognizer.class);
 
-    private static final String DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
+    /** Bei Ratenlimit wird der naechste Schluessel aus dem Pool versucht. */
+    private static final int MAX_ATTEMPTS = 3;
 
     private static final String PROMPT = """
             Lies den Text auf diesem Belegbild vollstaendig und wortgetreu, auch wenn er von Hand
@@ -48,87 +48,76 @@ public class GeminiVisionRecognizer implements OcrTextRecognizer {
             Zeile durch mindestens drei Leerzeichen, damit die Spalten erkennbar bleiben.
             """;
 
-    private static final ObjectMapper JSON = new ObjectMapper();
-
-    private final String apiKey;
-    private final String model;
-    private final String baseUrl;
-    private final HttpClient httpClient;
-    private final Duration timeout;
-
-    public GeminiVisionRecognizer(String apiKey, String model, Duration timeout) {
-        this(apiKey, model, DEFAULT_BASE_URL, timeout);
+    /** Modell + Schluessel-Pool fuer einen Erkennungsversuch. */
+    public record TierConfig(String model, List<String> apiKeys) {
+        public TierConfig {
+            apiKeys = apiKeys == null ? List.of() : List.copyOf(apiKeys);
+        }
     }
 
-    public GeminiVisionRecognizer(String apiKey, String model, String baseUrl, Duration timeout) {
-        this.apiKey = apiKey;
-        this.model = model == null || model.isBlank() ? "gemini-flash-latest" : model;
-        this.baseUrl = baseUrl;
-        this.timeout = timeout == null ? Duration.ofSeconds(60) : timeout;
-        this.httpClient = HttpClient.newBuilder().connectTimeout(this.timeout).build();
+    private final Supplier<TierConfig> config;
+    private final HttpTransport transport;
+
+    public GeminiVisionRecognizer(Supplier<TierConfig> config) {
+        this(config, new JdkHttpTransport());
+    }
+
+    public GeminiVisionRecognizer(Supplier<TierConfig> config, HttpTransport transport) {
+        this.config = config;
+        this.transport = transport;
     }
 
     @Override
     public boolean isAvailable() {
-        return apiKey != null && !apiKey.isBlank();
+        return !config.get().apiKeys().isEmpty();
     }
 
     @Override
     public String recognize(BufferedImage page) {
-        HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + model + ":generateContent"))
-                .header("Content-Type", "application/json")
-                .header("x-goog-api-key", apiKey)
-                .timeout(timeout)
-                .POST(HttpRequest.BodyPublishers.ofByteArray(requestBody(page)))
+        TierConfig tier = config.get();
+        if (tier.apiKeys().isEmpty()) {
+            throw new OcrException("Gemini-Zeichenerkennung ohne konfigurierten Schluessel-Pool angefragt");
+        }
+        AiProvider provider = buildProvider(tier.apiKeys());
+        ChatRequest request = ChatRequest.builder()
+                .message(ChatMessage.userWithImage(PROMPT, "image/png", encode(page)))
                 .build();
-        try {
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-            if (response.statusCode() != 200) {
-                throw new OcrException("Gemini-Zeichenerkennung meldet Code " + response.statusCode()
-                        + ": " + response.body());
+
+        RetryableAiException lastFailure = null;
+        for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            try {
+                return provider.chat(tier.model(), request).content();
+            } catch (RetryableAiException e) {
+                lastFailure = e;
+                log.info("Gemini-Schluessel nicht verfuegbar ({}), versuche den naechsten aus dem Pool",
+                        e.getMessage());
+            } catch (AiProviderException e) {
+                throw new OcrException("Gemini-Zeichenerkennung fehlgeschlagen: " + e.getMessage(), e);
             }
-            return extractText(response.body());
+        }
+        throw new OcrException("Gemini-Zeichenerkennung: " + lastFailure.getMessage(), lastFailure);
+    }
+
+    private AiProvider buildProvider(List<String> apiKeys) {
+        try {
+            return new GoogleGeminiProvider(Revolver.builder(apiKeys).load(), transport);
         } catch (IOException e) {
-            throw new OcrException("Gemini-Zeichenerkennung fehlgeschlagen: " + e.getMessage(), e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new OcrException("Gemini-Zeichenerkennung wurde unterbrochen", e);
+            throw new OcrException("Gemini-Zeichenerkennung: Schluessel-Pool konnte nicht geladen werden", e);
         }
     }
 
-    private byte[] requestBody(BufferedImage page) {
-        ObjectNode root = JSON.createObjectNode();
-        ArrayNode contents = root.putArray("contents");
-        ObjectNode content = contents.addObject();
-        ArrayNode parts = content.putArray("parts");
-        parts.addObject().put("text", PROMPT);
-        ObjectNode inlineData = parts.addObject().putObject("inline_data");
-        inlineData.put("mime_type", "image/png");
-        inlineData.put("data", encode(page));
-        return root.toString().getBytes(StandardCharsets.UTF_8);
-    }
-
-    private String encode(BufferedImage page) {
+    private byte[] encode(BufferedImage page) {
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             ImageIO.write(page, "png", out);
-            return Base64.getEncoder().encodeToString(out.toByteArray());
+            return out.toByteArray();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-    private String extractText(String responseBody) throws IOException {
-        JsonNode root = JSON.readTree(responseBody);
-        JsonNode text = root.at("/candidates/0/content/parts/0/text");
-        if (text.isMissingNode()) {
-            throw new OcrException("Gemini-Zeichenerkennung lieferte keinen Text: " + responseBody);
-        }
-        return text.asText();
-    }
-
     @Override
     public String toString() {
-        return String.format(Locale.ROOT, "GeminiVisionRecognizer[%s]", model);
+        return String.format(Locale.ROOT, "GeminiVisionRecognizer[%s]", config.get().model());
     }
 }

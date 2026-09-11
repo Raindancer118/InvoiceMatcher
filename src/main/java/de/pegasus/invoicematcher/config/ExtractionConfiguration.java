@@ -22,19 +22,20 @@ public class ExtractionConfiguration {
     }
 
     /**
-     * Tesseract bleibt die erste Erkennung; ist der Gemini-Ausweichweg eingeschaltet, legt sich
-     * {@link FallbackOcrTextRecognizer} davor und fragt ihn nur bei Seiten ohne erkennbaren
-     * Belegtitel an - siehe dessen Klassendoku.
+     * Tesseract bleibt die erste Erkennung; {@link FallbackOcrTextRecognizer} legt sich davor
+     * und fragt den Gemini-Ausweichweg nur bei Seiten ohne erkennbaren Belegtitel an (siehe
+     * dessen Klassendoku). Immer aktiv - {@link GeminiVisionRecognizer} liest Modell und
+     * Schluessel-Pool bei jedem Aufruf frisch aus {@link AiSettingsService}; ohne hinterlegte
+     * Schluessel meldet es sich einfach als nicht verfuegbar.
      */
     @Bean
-    public OcrTextRecognizer ocrTextRecognizer(OcrProperties ocr) {
+    public OcrTextRecognizer ocrTextRecognizer(OcrProperties ocr, AiSettingsService aiSettings) {
         OcrTextRecognizer tesseract = new TesseractCliRecognizer(ocr.command(), ocr.language(), ocr.tessdataDir(),
                 ocr.pageSegmentationMode(), ocr.dpi(), ocr.timeout());
-        if (!ocr.gemini().enabled()) {
-            return tesseract;
-        }
-        GeminiVisionRecognizer gemini = new GeminiVisionRecognizer(ocr.gemini().apiKey(), ocr.gemini().model(),
-                ocr.gemini().timeout());
+        GeminiVisionRecognizer gemini = new GeminiVisionRecognizer(() -> {
+            AiProperties.Tier smart = aiSettings.current().smart();
+            return new GeminiVisionRecognizer.TierConfig(smart.model(), smart.apiKeys());
+        });
         return new FallbackOcrTextRecognizer(tesseract, gemini);
     }
 

@@ -76,18 +76,25 @@ invoicematcher:
     # Weniger Zeichen je Seite heisst: die Textebene ist leer oder eine Geraetekennung.
     min-characters-per-page: 40
     timeout: 60s
+    # Der Handschrift-Ausweichweg (siehe FallbackOcrTextRecognizer) nutzt denselben Schluessel-
+    # Pool wie die KI-Klassifikation unten (invoicematcher.ai.smart) - ein Ort fuer alle
+    # Gemini-Schluessel statt zwei getrennter Konfigurationen.
 
-    # Ausweichweg fuer Seiten, deren Titel Tesseract nicht lesen konnte - typischerweise
-    # Handschrift, die auf Druckschrift trainierte Engines regelmaessig verliest. Standardmaessig
-    # AUS: das Belegbild verliesse sonst den eigenen Server an Google, was einen
-    # Auftragsverarbeitungsvertrag voraussetzt. Angefragt wird ohnehin nur bei Belegen, deren
-    # Titel sonst nicht erkannt wuerde, siehe FallbackOcrTextRecognizer.
-    gemini:
-      enabled: ${INVOICEMATCHER_OCR_GEMINI_ENABLED:false}
-      api-key: ${INVOICEMATCHER_OCR_GEMINI_API_KEY:}
-      model: ${INVOICEMATCHER_OCR_GEMINI_MODEL:gemini-flash-latest}
-      timeout: 60s
+  # Modellwahl der KI-Klassifikation - nur der Vorgabewert fuer den allerersten Start, danach
+  # ist die Einstellungen-Oberflaeche massgeblich (AiSettingsService), siehe SettingsSeeder.
+  ai:
+    fast:
+      model: ${INVOICEMATCHER_AI_FAST_MODEL:llama-3.3-70b-versatile}
+      # Kommagetrennter Schluessel-Pool (GROQ_API_KEY_1..4 im Projektvault).
+      api-keys: ${INVOICEMATCHER_AI_FAST_API_KEYS:}
+    smart:
+      model: ${INVOICEMATCHER_AI_SMART_MODEL:gemini-2.5-pro}
+      # Kommagetrennter Schluessel-Pool (GOOGLE_API_KEY_1..4 im Projektvault).
+      api-keys: ${INVOICEMATCHER_AI_SMART_API_KEYS:}
 
+  # Kontenrahmen: nur der Vorgabewert fuer den allerersten Start (SettingsSeeder), danach ist
+  # die Einstellungen-Oberflaeche massgeblich (AccountingSettingsService) - jederzeit ohne
+  # Neustart austauschbar. Wird der KI-Klassifikation als Kontext-JSON mitgegeben.
   accounting:
     # Nettoeinzelpreis, ab dem eine Anlagenposition nicht mehr automatisch kontiert wird.
     gwg-limit: 800.00
@@ -141,13 +148,13 @@ invoicematcher:
        fahrzeug, anhaenger, stapler, werkbank, hebebuehne, kompressor, absauganlage,
        kreissaege, hobelmaschine, fraese, cnc]
 
+  # Geschaeftspartner: gleiches Prinzip wie Kontenrahmen oben (nur Vorgabewert, dann
+  # PartnerSettingsService massgeblich).
   partners:
     # Sammelkonten je Anfangsbuchstabe, strikt getrennt vom Nummernkreis echter Partner.
     diverse:
       creditor-start: 70001
       debitor-start: 10001
-    # Optionaler DTVF-Export; ist er gesetzt, ergaenzt er die untenstehende Liste.
-    dtvf-file: ""
     known:
       - { konto: 70101, name: "Friedrich Klausmuster",        direction: EINGANG, vat-id: "DE 404131066", tax-number: "156/290/44989" }
       - { konto: 70102, name: "Sägewerk Kumpfmühle Test",     direction: EINGANG, vat-id: "DE 815000093", tax-number: "241/116/31421" }

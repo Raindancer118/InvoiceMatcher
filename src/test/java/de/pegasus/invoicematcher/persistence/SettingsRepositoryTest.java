@@ -1,10 +1,15 @@
 package de.pegasus.invoicematcher.persistence;
 
 import com.zaxxer.hikari.HikariDataSource;
+import de.pegasus.invoicematcher.config.AccountingProperties;
+import de.pegasus.invoicematcher.config.AiProperties;
 import de.pegasus.invoicematcher.config.CompanyProperties;
 import de.pegasus.invoicematcher.config.MailIntakeProperties;
+import de.pegasus.invoicematcher.config.PartnerProperties;
 import de.pegasus.invoicematcher.config.SecretCipher;
 import de.pegasus.invoicematcher.config.SettingsKeyProperties;
+import de.pegasus.invoicematcher.domain.Direction;
+import java.math.BigDecimal;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -130,6 +135,97 @@ class SettingsRepositoryTest {
                 Duration.ofMinutes(5), 50, DataSize.ofMegabytes(20), List.of()));
 
         assertThat(repository.loadMailIntake().orElseThrow().password()).isNull();
+    }
+
+    @Test
+    void accountingSettingsAreEmptyBeforeTheFirstSave() {
+        assertThat(repository.loadAccounting()).isEmpty();
+    }
+
+    @Test
+    void savedAccountingSettingsReturnExactlyWhatWasSaved() {
+        AccountingProperties accounting = new AccountingProperties(new BigDecimal("800.00"),
+                new BigDecimal("0.01"),
+                List.of(new AccountingProperties.VatAccount(new BigDecimal("19"), 8400, true)),
+                List.of(new AccountingProperties.VatAccount(new BigDecimal("19"), 3400, true)),
+                List.of(new AccountingProperties.ExpenseCategory("Furniere/Kanten", 3401, false,
+                        List.of("furnier"))),
+                List.of("maschine"));
+
+        repository.saveAccounting(accounting);
+
+        AccountingProperties geladen = repository.loadAccounting().orElseThrow();
+        assertThat(geladen.gwgLimit()).isEqualByComparingTo("800.00");
+        assertThat(geladen.categories()).singleElement()
+                .satisfies(c -> assertThat(c.label()).isEqualTo("Furniere/Kanten"));
+    }
+
+    @Test
+    void savingAccountingSettingsTwiceUpdatesInsteadOfDuplicating() {
+        repository.saveAccounting(new AccountingProperties(new BigDecimal("800.00"), new BigDecimal("0.01"),
+                List.of(), List.of(), List.of(), List.of()));
+        repository.saveAccounting(new AccountingProperties(new BigDecimal("1200.00"), new BigDecimal("0.01"),
+                List.of(), List.of(), List.of(), List.of()));
+
+        assertThat(repository.loadAccounting().orElseThrow().gwgLimit()).isEqualByComparingTo("1200.00");
+    }
+
+    @Test
+    void partnerSettingsAreEmptyBeforeTheFirstSave() {
+        assertThat(repository.loadPartners()).isEmpty();
+    }
+
+    @Test
+    void savedPartnerSettingsReturnExactlyWhatWasSaved() {
+        PartnerProperties partners = new PartnerProperties(new PartnerProperties.Diverse(70001, 10001),
+                List.of(new PartnerProperties.KnownPartner(70101, "Friedrich Klausmuster", Direction.EINGANG,
+                        "DE404131066", null)));
+
+        repository.savePartners(partners);
+
+        PartnerProperties geladen = repository.loadPartners().orElseThrow();
+        assertThat(geladen.diverse().creditorStart()).isEqualTo(70001);
+        assertThat(geladen.known()).singleElement()
+                .satisfies(p -> assertThat(p.name()).isEqualTo("Friedrich Klausmuster"));
+    }
+
+    @Test
+    void aiSettingsAreEmptyBeforeTheFirstSave() {
+        assertThat(repository.loadAi()).isEmpty();
+    }
+
+    @Test
+    void theStoredAiKeysNeverAppearAsPlaintextInTheDatabase() {
+        repository.saveAi(new AiProperties(
+                new AiProperties.Tier("llama-3.3-70b-versatile", List.of("geheimer-groq-schluessel")),
+                new AiProperties.Tier("gemini-2.5-pro", List.of("geheimer-gemini-schluessel"))));
+
+        String rohwert = JdbcClient.create(dataSource)
+                .sql("SELECT fast_api_keys_encrypted FROM ai_settings WHERE id = 1")
+                .query(String.class)
+                .single();
+
+        assertThat(rohwert).isNotNull().doesNotContain("geheimer-groq-schluessel");
+    }
+
+    @Test
+    void savedAiSettingsReturnExactlyWhatWasSaved() {
+        repository.saveAi(new AiProperties(
+                new AiProperties.Tier("llama-3.3-70b-versatile", List.of("groq-key-1", "groq-key-2")),
+                new AiProperties.Tier("gemini-2.5-pro", List.of("gemini-key-1"))));
+
+        AiProperties geladen = repository.loadAi().orElseThrow();
+        assertThat(geladen.fast().model()).isEqualTo("llama-3.3-70b-versatile");
+        assertThat(geladen.fast().apiKeys()).containsExactly("groq-key-1", "groq-key-2");
+        assertThat(geladen.smart().apiKeys()).containsExactly("gemini-key-1");
+    }
+
+    @Test
+    void aMissingAiKeyListRoundTripsAsEmpty() {
+        repository.saveAi(new AiProperties(new AiProperties.Tier("llama-3.3-70b-versatile", List.of()),
+                new AiProperties.Tier("gemini-2.5-pro", List.of())));
+
+        assertThat(repository.loadAi().orElseThrow().fast().apiKeys()).isEmpty();
     }
 
     private static MailIntakeProperties mailIntake(String passwort) {

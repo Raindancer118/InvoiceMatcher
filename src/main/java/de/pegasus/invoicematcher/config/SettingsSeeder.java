@@ -19,12 +19,19 @@ public class SettingsSeeder implements ApplicationRunner {
     private final SettingsRepository repository;
     private final CompanyProperties companyVorgabewerte;
     private final MailIntakeProperties mailVorgabewerte;
+    private final AccountingProperties accountingVorgabewerte;
+    private final PartnerProperties partnerVorgabewerte;
+    private final AiProperties aiVorgabewerte;
 
     public SettingsSeeder(SettingsRepository repository, CompanyProperties companyVorgabewerte,
-                          MailIntakeProperties mailVorgabewerte) {
+                          MailIntakeProperties mailVorgabewerte, AccountingProperties accountingVorgabewerte,
+                          PartnerProperties partnerVorgabewerte, AiProperties aiVorgabewerte) {
         this.repository = repository;
         this.companyVorgabewerte = companyVorgabewerte;
         this.mailVorgabewerte = mailVorgabewerte;
+        this.accountingVorgabewerte = accountingVorgabewerte;
+        this.partnerVorgabewerte = partnerVorgabewerte;
+        this.aiVorgabewerte = aiVorgabewerte;
     }
 
     @Override
@@ -34,6 +41,15 @@ public class SettingsSeeder implements ApplicationRunner {
         }
         if (repository.loadMailIntake().isEmpty()) {
             repository.saveMailIntake(mailVorgabewerte);
+        }
+        if (repository.loadAccounting().isEmpty()) {
+            repository.saveAccounting(accountingVorgabewerte);
+        }
+        if (repository.loadPartners().isEmpty()) {
+            repository.savePartners(partnerVorgabewerte);
+        }
+        if (repository.loadAi().isEmpty()) {
+            repository.saveAi(aiVorgabewerte);
         }
     }
 }
