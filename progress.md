@@ -12,6 +12,12 @@
       Schlaegt die KI komplett fehl, geht der Beleg zur manuellen Pruefung statt verworfen zu
       werden. Personenkonto-Fallback fuer unbekannte Partner bleibt deterministisch
       (`DiverseAccountRange`, 26 Sammelkonten nach Anfangsbuchstabe).
+      **Live gegen die echten Vault-Keys verifiziert** (`LiveAiClassificationTest`, opt-in via
+      `INVOICEMATCHER_LIVE_AI_TEST=true`): document_type, Belegdatum, Rechnungsnummer,
+      Personenkonto und beide Buchungszeilen (Sachkonto/Steuerschluessel/Betrag) eines echten
+      Testbelegs stimmen exakt. Vorgabemodelle `openai/gpt-oss-120b` (Groq) und
+      `gemini-flash-latest` (Gemini) - die urspruenglich gewaehlten `llama-3.3-70b-versatile`
+      und `gemini-2.5-pro` waren fuer den Schluessel-Pool nicht mehr erreichbar (404).
 - [x] Kontenrahmen, Geschaeftspartnerliste und KI-Modellwahl sind jederzeit ueber die
       Einstellungen-Oberflaeche editierbar (Roh-JSON bzw. Modell+Schluessel), ohne Neustart -
       `AccountingSettingsService`/`PartnerSettingsService`/`AiSettingsService`, gleiches
