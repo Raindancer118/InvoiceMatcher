@@ -77,6 +77,17 @@ invoicematcher:
     min-characters-per-page: 40
     timeout: 60s
 
+    # Ausweichweg fuer Seiten, deren Titel Tesseract nicht lesen konnte - typischerweise
+    # Handschrift, die auf Druckschrift trainierte Engines regelmaessig verliest. Standardmaessig
+    # AUS: das Belegbild verliesse sonst den eigenen Server an Google, was einen
+    # Auftragsverarbeitungsvertrag voraussetzt. Angefragt wird ohnehin nur bei Belegen, deren
+    # Titel sonst nicht erkannt wuerde, siehe FallbackOcrTextRecognizer.
+    gemini:
+      enabled: ${INVOICEMATCHER_OCR_GEMINI_ENABLED:false}
+      api-key: ${INVOICEMATCHER_OCR_GEMINI_API_KEY:}
+      model: ${INVOICEMATCHER_OCR_GEMINI_MODEL:gemini-flash-latest}
+      timeout: 60s
+
   accounting:
     # Nettoeinzelpreis, ab dem eine Anlagenposition nicht mehr automatisch kontiert wird.
     gwg-limit: 800.00

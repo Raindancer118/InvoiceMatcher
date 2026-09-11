@@ -40,5 +40,14 @@ public class OcrStartupCheck {
                     + "gescannte Belege gehen mit leeren Feldern zur Pruefung",
                     properties.command(), properties.language());
         }
+        if (properties.gemini().enabled()) {
+            if (properties.gemini().apiKey() == null || properties.gemini().apiKey().isBlank()) {
+                log.warn("Gemini-Ausweichweg eingeschaltet, aber kein API-Schluessel gesetzt - "
+                        + "Belege mit unlesbarem Titel (z.B. Handschrift) landen weiterhin bei 'Sonstige'");
+            } else {
+                log.info("Gemini-Ausweichweg bereit: Modell '{}' - wird nur bei Belegen ohne erkennbaren "
+                        + "Titel angefragt", properties.gemini().model());
+            }
+        }
     }
 }

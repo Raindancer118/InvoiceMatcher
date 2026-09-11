@@ -21,6 +21,10 @@
 - [x] Persistenz in SQLite: Pruefvorgaenge und Belegbilder ueberstehen einen Neustart
 - [x] OCR-Stufe fuer gescannte Belege (Tesseract), layouterhaltend ueber die Wortrahmen -
       ein Scan wird identisch kontiert wie das Original und geht zur Pruefung
+- [x] Gemini-Ausweichweg fuer die Zeichenerkennung: wird nur angefragt, wenn Tesseract keinen
+      bekannten Belegtitel findet (typischerweise Handschrift) - standardmaessig AUS
+      (`invoicematcher.ocr.gemini.enabled`), da das Belegbild dann an Google geht und ein AVV
+      noetig ist
 
 - [x] Belegbild zum Pruefvorgang ueber die API abrufbar (`GET /api/v1/pruefungen/{id}/beleg`)
 - [x] API gegen Authentik abgesichert (JWT, Gruppenzwang, Healthcheck bleibt frei)

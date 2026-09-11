@@ -16,11 +16,13 @@ import java.time.Duration;
  * @param pageSegmentationMode Tesseracts {@code --psm}; 3 erkennt mehrspaltige Seiten selbst
  * @param minCharactersPerPage ab so vielen Zeichen gilt die Textebene des PDF als brauchbar
  * @param timeout              Zeitgrenze je Seite
+ * @param gemini               Ausweichweg ueber eine Cloud-Zeichenerkennung fuer Seiten, deren
+ *                             Titel Tesseract nicht lesen konnte (z.B. Handschrift)
  */
 @ConfigurationProperties("invoicematcher.ocr")
 public record OcrProperties(boolean enabled, String command, String language, String tessdataDir,
                             int dpi, int maxPages, int pageSegmentationMode,
-                            int minCharactersPerPage, Duration timeout) {
+                            int minCharactersPerPage, Duration timeout, Gemini gemini) {
 
     public OcrProperties {
         command = command == null || command.isBlank() ? "tesseract" : command;
@@ -30,5 +32,21 @@ public record OcrProperties(boolean enabled, String command, String language, St
         pageSegmentationMode = pageSegmentationMode > 0 ? pageSegmentationMode : 3;
         minCharactersPerPage = minCharactersPerPage > 0 ? minCharactersPerPage : 40;
         timeout = timeout == null ? Duration.ofSeconds(60) : timeout;
+        gemini = gemini == null ? new Gemini(false, null, null, null) : gemini;
+    }
+
+    /**
+     * @param enabled ausgeschaltet bleibt Tesseract die einzige Zeichenerkennung; kein Beleg
+     *                verlaesst dann den eigenen Server. Erfordert bei Einschaltung einen
+     *                Auftragsverarbeitungsvertrag mit dem Anbieter der API.
+     * @param apiKey  Schluessel fuer die Gemini-API; ohne ihn bleibt der Ausweichweg inaktiv
+     * @param model   das Gemini-Modell, z.B. {@code gemini-flash-latest}
+     * @param timeout Zeitgrenze je Seite
+     */
+    public record Gemini(boolean enabled, String apiKey, String model, Duration timeout) {
+        public Gemini {
+            model = model == null || model.isBlank() ? "gemini-flash-latest" : model;
+            timeout = timeout == null ? Duration.ofSeconds(60) : timeout;
+        }
     }
 }
