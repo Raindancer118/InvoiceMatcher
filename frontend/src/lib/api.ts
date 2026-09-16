@@ -46,6 +46,15 @@ export interface Ergebnis {
   konfidenz_score: number;
 }
 
+/** Die Herleitung der KI zu einer Kontierung - aus der zweiten, rein erklaerenden Anfrage. */
+export interface Gedanken {
+  modell: string;
+  kurzfassung: string | null;
+  schritte: { titel: string | null; text: string }[];
+  unsicherheiten: string[];
+  gegenprobe: string | null;
+}
+
 export interface Vorgang {
   id: string;
   status: Zustand;
@@ -53,6 +62,7 @@ export interface Vorgang {
   quelle: Quelle;
   ergebnis: Ergebnis;
   hinweise: Hinweis[];
+  gedanken: Gedanken | null;
   eingegangenAm: string;
   entschiedenAm: string | null;
   entschiedenVon: string | null;

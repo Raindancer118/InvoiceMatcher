@@ -1,6 +1,24 @@
 # Progress
 
 ## Umgesetzt
+- [x] **Gedanken der KI je Beleg** (0.8.0): auf die Klassifikation folgt eine zweite, rein
+      erklaerende Anfrage (`RationalePrompt`, `ClassificationRationaleService`). Sie legt dem
+      Modell den Beleg und die bereits getroffene Kontierung vor und fragt nach dem Gedankengang -
+      ausdruecklich in der Ich-Form und im Praesens ("Oben steht 'Rechnung' - das ist ein
+      Rechnungseingang", "Den Klausmuster ordne ich dem Personenkonto 70101 zu"), gegliedert in
+      Stationen (Belegart, Pflichtangaben, Rechenprobe, Personenkonto, Sachkonten, Konfidenz),
+      dazu selbst benannte Unsicherheiten und was das Modell sonst noch erwogen hat.
+      Das Ergebnis haengt als `gedanken` am `ClassificationReport`, wird mit dem Vorgang in
+      SQLite abgelegt, kommt ueber `GET /api/v1/pruefungen/{id}` mit und liegt im Prueftisch in
+      einer ausfahrbaren Lade am rechten Rand (`<details class="gedankenlade">`, reines CSS, kein
+      Skript - der Buchungssatz bleibt sichtbar, die Gedanken kommen nur auf Anforderung davor). Bewusst getrennt vom Klassifikationsaufruf: eine
+      Begruendung im selben Aufruf formt die Entscheidung mit. Faellt die Zweitanfrage aus, ist
+      `gedanken` schlicht `null` - die Kontierung bleibt unberuehrt.
+      **Live gegen die echten Vault-Keys verifiziert** (`LiveAiClassificationTest`): das Modell
+      lieferte zum Testbeleg sieben Gedankenschritte in der Ich-Form mit Betraegen und
+      Kontonummern und blieb von sich aus am fehlenden Steuerschluessel der Zuschnitt-Position
+      haengen ("Ich bin mir nicht sicher, ob ... ein Steuerschluessel noetig ist") - genau der
+      Punkt, an dem ein Pruefer ansetzt.
 - [x] **KI-Klassifikation ersetzt das deterministische Regelwerk vollstaendig** (0.7.0): das alte
       `IRule`/`RuleEngine`-Regelwerk und das Keyword-/Fuzzy-Matching in `masterdata/` sind
       entfernt. `ClassificationService` schickt Beleg, Kontenrahmen und Geschaeftspartnerliste

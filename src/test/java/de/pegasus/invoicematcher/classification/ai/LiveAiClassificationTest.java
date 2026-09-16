@@ -1,5 +1,6 @@
 package de.pegasus.invoicematcher.classification.ai;
 
+import de.pegasus.invoicematcher.classification.ClassificationRationale;
 import de.pegasus.invoicematcher.classification.ClassificationReport;
 import de.pegasus.invoicematcher.classification.ClassificationService;
 import de.pegasus.invoicematcher.config.AiProperties;
@@ -46,14 +47,24 @@ class LiveAiClassificationTest {
     }
 
     @Test
-    void classifiesARealStructuredInvoiceAsRechnungseingang() {
+    void classifiesARealStructuredInvoiceAndExplainsThatDecision() {
         ClassificationReport report = liveService().classify(Belege.document("01_PDF_Klaus_Furniere.pdf"));
 
         System.out.println("Live-KI-Ergebnis: " + report.result());
         System.out.println("Findings: " + report.findings());
+        System.out.println("Gedanken: " + report.gedanken());
 
         assertThat(report.result().documentType().carriesBookingData()
                 || report.result().documentType().isReview()).isTrue();
         assertThat(report.result().buchungszeilen()).isNotNull();
+
+        // Die zweite, erklaerende Anfrage - im selben Durchlauf geprueft, damit der Beleg nicht
+        // zweimal durch die echte API muss (Groq laeuft sonst in sein Minutenkontingent).
+        ClassificationRationale gedanken = report.gedanken();
+        assertThat(gedanken).isNotNull();
+        assertThat(gedanken.model()).isNotBlank();
+        assertThat(gedanken.kurzfassung()).isNotBlank();
+        assertThat(gedanken.schritte()).isNotEmpty();
     }
+
 }

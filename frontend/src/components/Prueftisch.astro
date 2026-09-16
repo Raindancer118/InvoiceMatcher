@@ -169,6 +169,36 @@ if (quelle?.format === 'XRECHNUNG' && id) {
         </p>
       )}
     </section>
+
+    {vorgang.gedanken && (
+      <details class="gedankenlade">
+        <summary aria-label="Gedanken der KI ein- und ausklappen"><span>Gedanken der KI</span></summary>
+        <div class="lade-inhalt">
+          <h3>Was die KI beim Lesen gedacht hat</h3>
+          {vorgang.gedanken.kurzfassung && <p class="gedanken-lead">{vorgang.gedanken.kurzfassung}</p>}
+          {vorgang.gedanken.schritte.length > 0 && (
+            <ol class="schritte">
+              {vorgang.gedanken.schritte.map((schritt) => (
+                <li class="schritt">
+                  {schritt.titel && <b>{schritt.titel}</b>}
+                  <p>{schritt.text}</p>
+                </li>
+              ))}
+            </ol>
+          )}
+          {vorgang.gedanken.unsicherheiten.length > 0 && (
+            <div class="unsicher">
+              <b>Woran die KI hängen blieb</b>
+              <ul>{vorgang.gedanken.unsicherheiten.map((punkt) => <li>{punkt}</li>)}</ul>
+            </div>
+          )}
+          {vorgang.gedanken.gegenprobe && (
+            <p class="gegenprobe"><b>Auch erwogen</b> {vorgang.gedanken.gegenprobe}</p>
+          )}
+          <p class="gedanken-quelle">{vorgang.gedanken.modell}</p>
+        </div>
+      </details>
+    )}
   </div>) : (
     <section class="workbench-empty"><h2>In diesem Zustand liegt gerade nichts.</h2><p>Wähle einen anderen Filter oder reiche einen Beleg ein.</p><a href="/#datei">Beleg einreichen →</a></section>
   )}

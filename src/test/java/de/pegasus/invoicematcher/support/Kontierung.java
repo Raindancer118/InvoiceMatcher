@@ -83,6 +83,7 @@ public final class Kontierung {
     public static ClassificationService classificationServiceWith(ExtractionService extraction,
                                                                    de.pegasus.invoicematcher.classification.ai.InvoiceClassifier classifier) {
         return new ClassificationService(extraction, classifier, new AiClassificationResponseParser(),
+                new de.pegasus.invoicematcher.classification.ai.ClassificationRationaleService(classifier),
                 Kontierung::companyProperties, Kontierung::accountingProperties, Kontierung::partnerProperties);
     }
 

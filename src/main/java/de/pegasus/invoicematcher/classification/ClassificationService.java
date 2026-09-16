@@ -1,6 +1,7 @@
 package de.pegasus.invoicematcher.classification;
 
 import de.pegasus.invoicematcher.classification.ai.AiClassificationResponseParser;
+import de.pegasus.invoicematcher.classification.ai.ClassificationRationaleService;
 import de.pegasus.invoicematcher.classification.ai.InvoiceClassificationPrompt;
 import de.pegasus.invoicematcher.classification.ai.InvoiceClassifier;
 import de.pegasus.invoicematcher.config.AccountingProperties;
@@ -31,6 +32,11 @@ import java.util.function.Supplier;
  * Prompt geschrieben ist) - kein deterministisches Regelwerk mehr dahinter. Schlagen beide
  * Eskalationsstufen (Groq, Gemini) fehl, wird der Beleg nicht verworfen, sondern zur manuellen
  * Pruefung markiert: das ist Fehlerbehandlung fuer einen Totalausfall, keine Zweitentscheidung.
+ *
+ * <p>Auf die Klassifikation folgt eine zweite, rein erklaerende Anfrage
+ * ({@link ClassificationRationaleService}): sie legt offen, wie die KI zu dieser Kontierung kam.
+ * Sie kostet einen weiteren Aufruf, aendert aber nie ein Ergebnis - faellt sie aus, geht der
+ * Beleg unveraendert weiter, nur ohne Gedankengang.
  */
 @Service
 public class ClassificationService {
@@ -44,6 +50,7 @@ public class ClassificationService {
     private final ExtractionService extraction;
     private final InvoiceClassifier classifier;
     private final AiClassificationResponseParser parser;
+    private final ClassificationRationaleService rationale;
     private final Supplier<CompanyProperties> company;
     private final Supplier<AccountingProperties> accounting;
     private final Supplier<PartnerProperties> partners;
@@ -56,11 +63,13 @@ public class ClassificationService {
      * Persistenzschicht.
      */
     public ClassificationService(ExtractionService extraction, InvoiceClassifier classifier,
-                                 AiClassificationResponseParser parser, Supplier<CompanyProperties> company,
+                                 AiClassificationResponseParser parser, ClassificationRationaleService rationale,
+                                 Supplier<CompanyProperties> company,
                                  Supplier<AccountingProperties> accounting, Supplier<PartnerProperties> partners) {
         this.extraction = extraction;
         this.classifier = classifier;
         this.parser = parser;
+        this.rationale = rationale;
         this.company = company;
         this.accounting = accounting;
         this.partners = partners;
@@ -76,6 +85,7 @@ public class ClassificationService {
 
         ClassificationResult result;
         List<Finding> findings;
+        ClassificationRationale gedanken = null;
         Optional<InvoiceClassifier.Result> response = classifier.classify(request);
         if (response.isPresent()) {
             try {
@@ -83,6 +93,7 @@ public class ClassificationService {
                         currentPartners, response.get().provider(), response.get().model());
                 result = parsed.result();
                 findings = parsed.findings();
+                gedanken = rationale.explain(invoice, result, pages).orElse(null);
             } catch (RuntimeException e) {
                 log.warn("KI-Antwort fuer '{}' konnte nicht verarbeitet werden: {}", document.filename(),
                         e.getMessage());
@@ -99,7 +110,7 @@ public class ClassificationService {
 
         log.info("Beleg '{}' klassifiziert als {} (Konfidenz {})",
                 document.filename(), result.documentType().label(), result.konfidenzScore());
-        return new ClassificationReport(document.filename(), summaryOf(invoice), result, findings);
+        return new ClassificationReport(document.filename(), summaryOf(invoice), result, findings, gedanken);
     }
 
     /** Ohne verwertbare KI-Antwort bleibt nur die manuelle Pruefung - Richtung EINGANG als sicherer Default. */

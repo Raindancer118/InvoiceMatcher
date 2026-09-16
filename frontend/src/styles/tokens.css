@@ -147,6 +147,36 @@ p { overflow-wrap:anywhere; }
 .hinweis p { margin:0; font-size:.88rem; }
 .marke { padding:.2rem .4rem; height:fit-content; font:12px var(--font-data); white-space:nowrap; }
 .m-warn { background:var(--amber-bg); color:var(--amber); } .m-info { background:var(--ink-state-bg); color:var(--ink-state); }
+/* Die Gedanken der KI liegen als Lade am rechten Rand des Prueftischs: der Buchungssatz bleibt
+   sichtbar, die Herleitung kommt nur davor, wenn der Pruefer sie anfordert. Reines <details>,
+   ohne Skript - die Seite rendert serverseitig und soll auch so bedienbar bleiben. */
+.gedankenlade { position:fixed; top:72px; right:0; bottom:0; z-index:6; display:flex; align-items:flex-start; }
+.gedankenlade > summary { list-style:none; cursor:pointer; flex:none; margin-top:2rem; padding:1.1rem .6rem;
+  background:var(--archive); color:#fffef9; border:1px solid var(--archive); border-right:0;
+  writing-mode:vertical-rl; text-orientation:mixed; font:600 .8rem/1 var(--font-body); letter-spacing:.04em; }
+.gedankenlade > summary::-webkit-details-marker { display:none; }
+.gedankenlade > summary::before { content:"▸ "; }
+.gedankenlade[open] > summary { background:var(--approve); color:var(--text); border-color:var(--border-strong); }
+.gedankenlade[open] > summary::before { content:"◂ "; }
+.gedankenlade > summary:hover { background:var(--btn-hover); color:#fffef9; }
+.lade-inhalt { width:min(430px,92vw); height:100%; overflow-y:auto; padding:1.5rem;
+  background:var(--surface-card); border-left:1px solid var(--border-strong); box-shadow:var(--shadow-bar);
+  font-size:.88rem; line-height:1.65; }
+.lade-inhalt > h3 { font-size:1rem; text-transform:uppercase; letter-spacing:.06em; margin-bottom:1rem; }
+.gedanken-lead { margin:0; font-size:.95rem; font-weight:600; }
+.gedanken-lead + .schritte { margin-top:1.2rem; }
+.schritte { list-style:none; counter-reset:schritt; padding:0; margin:0; }
+.schritt { counter-increment:schritt; padding:.8rem 0 .8rem 2rem; border-bottom:1px solid var(--border); position:relative; }
+.schritt::before { content:counter(schritt); position:absolute; left:0; top:.95rem; font:11px var(--font-data); color:var(--text-2); }
+.schritt:last-child { border:0; padding-bottom:0; }
+.schritt b { display:block; font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-2); }
+.schritt p { margin:.2rem 0 0; }
+.unsicher { margin-top:1.2rem; padding:.8rem 1rem; background:var(--amber-bg); border-left:4px solid var(--amber); }
+.unsicher b { font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; }
+.unsicher ul { margin:.4rem 0 0; padding-left:1.1rem; }
+.gegenprobe { margin:1.2rem 0 0; color:var(--text-2); }
+.gegenprobe b { display:block; font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text); }
+.gedanken-quelle { margin:1.5rem 0 0; padding-top:.8rem; border-top:1px solid var(--border); font:11px var(--font-data); color:var(--text-2); }
 .kopfdaten { display:grid; grid-template-columns:auto minmax(0,1fr); gap:.6rem 1rem; margin:0; font-size:.88rem; }
 .kopfdaten dt { color:var(--text-2); } .kopfdaten dd { margin:0; font-weight:600; overflow-wrap:anywhere; }
 .buchung { width:100%; border-collapse:collapse; font-size:.85rem; }
@@ -197,6 +227,9 @@ p { overflow-wrap:anywhere; }
   .queue { grid-row:span 2; max-height:60vh; }
   .review { grid-column:2; overflow-y:visible; }
   .belegbild .pdf,.xml-original,.belegbild .flaeche { flex:none; height:70vh; }
+  /* Gestapelte Spalten scrollen die ganze Seite - die Lade bleibt trotzdem am Fensterrand. */
+  .gedankenlade { top:auto; bottom:0; height:min(80dvh,640px); align-items:flex-end; }
+  .gedankenlade > summary { margin:0 0 2rem; }
 }
 @media(max-width:650px) {
   .wrap { padding:1rem; } .wrap.breit { padding:0; } .workbench { grid-template-columns:1fr; }
@@ -207,5 +240,6 @@ p { overflow-wrap:anywhere; }
   .new-invoice { font-size:.75rem; padding:.5rem; margin-right:.5rem; } .wordmark { width:auto; font-size:1rem; padding:1rem .7rem; }
   .abschnitt { align-items:start; flex-direction:column; } .kopfdaten { grid-template-columns:1fr; gap:.2rem; } .kopfdaten dd { margin-bottom:.6rem; }
   .belegzeile { grid-template-columns:90px minmax(0,1fr); gap:.5rem; }
+  .lade-inhalt { width:calc(100vw - 2.6rem); padding:1.2rem; }
 }
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; transition:none!important; animation:none!important; } }

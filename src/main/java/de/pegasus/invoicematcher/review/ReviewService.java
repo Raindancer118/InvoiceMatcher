@@ -124,7 +124,8 @@ public class ReviewService {
                 original.buchungstextKopf(),
                 original.konfidenzScore());
         requireBookingLines(corrected);
-        return new ClassificationReport(report.filename(), report.source(), corrected, report.findings());
+        return new ClassificationReport(report.filename(), report.source(), corrected, report.findings(),
+                report.gedanken());
     }
 
     /**

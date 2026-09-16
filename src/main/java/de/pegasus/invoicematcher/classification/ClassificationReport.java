@@ -13,13 +13,17 @@ import java.util.List;
  * Das vollstaendige Ergebnis einer Belegverarbeitung.
  *
  * <p>{@code result} ist das DATEV-Zwischenformat und bleibt unveraendert, wie im Regelwerk
- * beschrieben. {@code findings} und {@code source} sind der Kontext, den eine Pruefoberflaeche
- * braucht - beides gehoert bewusst nicht in das Buchungsformat.
+ * beschrieben. {@code findings}, {@code source} und {@code gedanken} sind der Kontext, den eine
+ * Pruefoberflaeche braucht - alles drei gehoert bewusst nicht in das Buchungsformat.
+ *
+ * <p>{@code gedanken} ist {@code null}, wenn die erklaerende Zweitanfrage ausfiel oder es (ohne
+ * verwertbare Klassifikation) nichts zu erklaeren gab - siehe {@link ClassificationRationale}.
  */
 public record ClassificationReport(@JsonProperty("dateiname") String filename,
                                    @JsonProperty("quelle") Source source,
                                    @JsonProperty("ergebnis") ClassificationResult result,
-                                   @JsonProperty("hinweise") List<Finding> findings) {
+                                   @JsonProperty("hinweise") List<Finding> findings,
+                                   @JsonProperty("gedanken") ClassificationRationale gedanken) {
 
     /**
      * Die erkannten Rohdaten des Belegs - unabhaengig davon, ob ein Buchungssatz entstand.

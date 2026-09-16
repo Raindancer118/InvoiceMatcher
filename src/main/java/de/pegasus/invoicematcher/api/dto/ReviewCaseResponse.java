@@ -1,6 +1,7 @@
 package de.pegasus.invoicematcher.api.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import de.pegasus.invoicematcher.classification.ClassificationRationale;
 import de.pegasus.invoicematcher.classification.ClassificationReport;
 import de.pegasus.invoicematcher.domain.ClassificationResult;
 import de.pegasus.invoicematcher.domain.Finding;
@@ -20,6 +21,7 @@ public record ReviewCaseResponse(String id,
                                  @JsonProperty("quelle") ClassificationReport.Source source,
                                  @JsonProperty("ergebnis") ClassificationResult result,
                                  @JsonProperty("hinweise") List<Finding> findings,
+                                 @JsonProperty("gedanken") ClassificationRationale rationale,
                                  @JsonProperty("eingegangenAm") Instant submittedAt,
                                  @JsonProperty("entschiedenAm") Instant decidedAt,
                                  @JsonProperty("entschiedenVon") String decidedBy,
@@ -29,7 +31,7 @@ public record ReviewCaseResponse(String id,
     public static ReviewCaseResponse of(ReviewCase reviewCase) {
         ClassificationReport report = reviewCase.report();
         return new ReviewCaseResponse(reviewCase.id(), reviewCase.status(), report.filename(),
-                report.source(), report.result(), report.findings(),
+                report.source(), report.result(), report.findings(), report.gedanken(),
                 reviewCase.submittedAt(), reviewCase.decidedAt(), reviewCase.decidedBy(),
                 reviewCase.decisionNote(), reviewCase.exportedAt());
     }

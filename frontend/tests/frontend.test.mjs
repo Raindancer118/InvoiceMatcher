@@ -26,6 +26,12 @@ test('Prüftisch: geschützte Seiten, Originale und vollständige Formularwege',
       konfidenz_score: 0.8, buchungstext_kopf: 'Testauftrag',
       buchungszeilen: [{ sachkonto: 3400, soll_haben_kennzeichen: 'S', steuerschluessel: 9, umsatz: 100, buchungstext: 'Prüfbare Position' }] },
     hinweise: [{ ruleId: '1.3', severity: 'WARNUNG', message: 'Bitte Original prüfen.' }],
+    gedanken: { modell: 'groq/openai-gpt-oss-120b',
+      kurzfassung: 'Ich lese eine ganz normale Eingangsrechnung von einem Lieferanten, den ich kenne.',
+      schritte: [{ titel: 'Belegart', text: 'Ich sehe oben groß „Rechnung“ und darunter die Nummer R-42 - das kann ich buchen.' },
+        { titel: 'Personenkonto', text: 'Den Testlieferant führe ich unter 70001, also geht der Beleg auf dieses Konto.' }],
+      unsicherheiten: ['Beim Zuschnitt bin ich mir nicht sicher, ob 3400 oder 3401 richtig ist.'],
+      gegenprobe: 'Ich habe kurz überlegt, ob das ein Rechnungsausgang sein könnte - dafür müsste die eigene Firma der Aussteller sein.' },
     eingegangenAm: '2026-09-01T10:00:00Z', exportiertAm: null,
   };
   const firma = { name: 'Testfirma', ustIdNr: 'DE123456789', steuernummer: '123/456' };
@@ -114,6 +120,27 @@ test('Prüftisch: geschützte Seiten, Originale und vollständige Formularwege',
     assert.match(decided, /Beleg unvollständig/);
     assert.doesNotMatch(decided, /value="freigeben"/);
   });
+  await t.test('Die Gedanken der KI liegen als ausfahrbare Lade am Vorgang', async () => {
+    const html = await (await get('/vorgang/test-beleg')).text();
+    for (const text of ['class="gedankenlade"', 'Gedanken der KI', 'Was die KI beim Lesen gedacht hat',
+      'Ich sehe oben groß „Rechnung“', 'Personenkonto', 'Testlieferant führe ich unter 70001',
+      'Woran die KI hängen blieb', 'Beim Zuschnitt bin ich mir nicht sicher', 'Auch erwogen',
+      'groq/openai-gpt-oss-120b']) {
+      assert.ok(html.includes(text), text);
+    }
+    // Ohne Skript bedienbar: die Lade ist ein natives <details> mit Umschalter.
+    assert.match(html, /<details class="gedankenlade">\s*<summary/);
+  });
+
+  await t.test('Ohne Erläuterung bleibt der Prüftisch vollständig, nur ohne die Karte', async () => {
+    const gedanken = vorgang.gedanken;
+    vorgang.gedanken = null;
+    const html = await (await get('/vorgang/test-beleg')).text();
+    vorgang.gedanken = gedanken;
+    assert.ok(!html.includes('gedankenlade'));
+    assert.match(html, /Prüfbare Position/);
+  });
+
   await t.test('Prüfliste öffnet Auswahl, Original und Prüfung zusammen; Filter behalten die Auswahl', async () => {
     const html = await (await get('/pruefliste')).text();
     assert.match(html, /Auf dem Tisch/);
