@@ -39,7 +39,11 @@ public class SqliteDirectoryPreparer implements BeanFactoryPostProcessor {
         directoryOf(url).ifPresent(SqliteDirectoryPreparer::create);
     }
 
-    static java.util.Optional<Path> directoryOf(String url) {
+    /**
+     * Das Verzeichnis der Ablage - auch fuer alles andere, was neben der Datenbank liegen soll
+     * (z.B. der verschluesselte Zustand der KI-Schluessel-Pools, siehe {@code AiKeyPool}).
+     */
+    public static java.util.Optional<Path> directoryOf(String url) {
         if (!url.startsWith(SQLITE_PREFIX)) {
             return java.util.Optional.empty();
         }

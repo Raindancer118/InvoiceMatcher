@@ -70,6 +70,29 @@ export interface Vorgang {
   exportiertAm: string | null;
 }
 
+/** Zustand eines einzelnen KI-Schluessels; `schluessel` ist immer nur die Maske. */
+export interface SchluesselStatus {
+  stufe: 'fast' | 'smart';
+  anbieter: string;
+  position: number;
+  schluessel: string;
+  verfuegbar: boolean;
+  gesperrtBis: string | null;
+  nutzungen: number;
+  erfolge: number;
+  fehler: number;
+  kontingenttreffer: number;
+  zuverlaessigkeit: number;
+  probe: {
+    ok: boolean;
+    meldung: string;
+    dauerMs: number;
+    restAnfragen: number | null;
+    restToken: number | null;
+    kontingentZurueckAb: string | null;
+  } | null;
+}
+
 export interface Firma {
   name: string;
   ustIdNr: string | null;
@@ -244,6 +267,13 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(ki),
     }),
+
+  /** Kostenlos: der Zustand, den der laufende Schluessel-Pool ohnehin kennt. */
+  kiSchluessel: (token: string) => json<SchluesselStatus[]>('/api/v1/einstellungen/ki/schluessel', token),
+
+  /** Kostet Kontingent: fragt jeden Schluessel einzeln beim Anbieter an. */
+  kiSchluesselPruefen: (token: string) =>
+    json<SchluesselStatus[]>('/api/v1/einstellungen/ki/schluessel/pruefen', token, { method: 'POST' }),
 
   kiVerbindungTesten: (token: string, ki: KiEingabe) =>
     json<KiTestErgebnis>('/api/v1/einstellungen/ki/test', token, {

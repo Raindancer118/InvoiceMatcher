@@ -1,6 +1,25 @@
 # Progress
 
 ## Umgesetzt
+- [x] **Schluesselansicht mit Kontingentstand** (0.9.0): eigene Seite `/schluessel` listet jeden
+      hinterlegten KI-Schluessel beider Stufen - maskiert (`gsk_…a1b2`, der Klartext verlaesst
+      den Server nie), mit Nutzungen, Fehlern, Kontingenttreffern und laufender Sperre aus dem
+      Pool (kostenlos). Knopf "Alle Schluessel live pruefen" fragt jeden Schluessel einzeln beim
+      Anbieter an und zeigt Restanfragen, Resttoken und den Zeitpunkt, ab dem das Kontingent
+      wieder da ist. Neu dahinter: `AiKeyPool` (langlebiger Pool je Stufe, Zustand verschluesselt
+      neben der Datenbank - vorher war jede Kontingentsperre nach einem Beleg vergessen),
+      `AiKeyProbe` (rohes HTTP, weil nur die Antwort-Header die Kontingentzahlen tragen) und
+      `AiKeyStatusService`; API: `GET /api/v1/einstellungen/ki/schluessel` und
+      `POST .../schluessel/pruefen`.
+      **Live verifiziert** (`LiveAiKeyProbeTest`): Groq meldete 999 Restanfragen, 7927 Resttoken
+      und einen konkreten Reset-Zeitpunkt; Gemini ist erreichbar, gibt aber keine Restangaben
+      zurueck - das steht so in der Oberflaeche.
+- [x] **CI-Zugang zur privaten Maven-Registry repariert** (16.09.2026): der Build scheiterte seit
+      dem 11.09. mit 401 beim Aufloesen von `ai-gateway` - die Actions hatten ueberhaupt keine
+      Zugangsdaten fuer `packages.tstieh.de`, der Deploy lief deshalb nie an. Eigener,
+      ausschliesslich lesender Registry-Token `invoicematcher-ci` (Route `/releases`, `r`) als
+      GitHub-Secrets hinterlegt; Workflow reicht ihn ueber `setup-java` an Maven und als
+      BuildKit-Secret in den Image-Build.
 - [x] **Gedanken der KI je Beleg** (0.8.0): auf die Klassifikation folgt eine zweite, rein
       erklaerende Anfrage (`RationalePrompt`, `ClassificationRationaleService`). Sie legt dem
       Modell den Beleg und die bereits getroffene Kontierung vor und fragt nach dem Gedankengang -

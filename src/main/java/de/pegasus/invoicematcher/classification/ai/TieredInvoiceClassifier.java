@@ -10,10 +10,6 @@ import io.github.raindancer118.aigateway.ChatResponse;
 import io.github.raindancer118.aigateway.ModelTier;
 import io.github.raindancer118.aigateway.Route;
 import io.github.raindancer118.aigateway.http.HttpTransport;
-import io.github.raindancer118.aigateway.http.JdkHttpTransport;
-import io.github.raindancer118.aigateway.provider.GoogleGeminiProvider;
-import io.github.raindancer118.aigateway.provider.OpenAiCompatibleProvider;
-import io.github.raindancer118.revolver.Revolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,23 +24,30 @@ import java.util.function.Supplier;
  * wenn die schnelle Stufe scheitert oder das Belegbild ein Bild enthaelt (Groq wuerde dort
  * ohnehin nur fehlschlagen).
  *
- * <p>Modell und Schluessel-Pool werden bei jeder Anfrage frisch aus {@code AiSettingsService}
- * gelesen (siehe {@link #settings}) - eine Aenderung in den Einstellungen wirkt sofort.
+ * <p>Modell und Schluesselliste werden bei jeder Anfrage frisch aus {@code AiSettingsService}
+ * gelesen (siehe {@link #settings}) - eine Aenderung in den Einstellungen wirkt sofort. Der
+ * Schluessel-Pool selbst kommt dagegen aus {@link AiKeyPool} und ist langlebig: nur so bleibt
+ * eine Kontingentsperre ueber den einzelnen Beleg hinaus bekannt.
  */
 public class TieredInvoiceClassifier implements InvoiceClassifier {
 
     private static final Logger log = LoggerFactory.getLogger(TieredInvoiceClassifier.class);
 
     private final Supplier<AiProperties> settings;
-    private final HttpTransport transport;
+    private final AiKeyPool pool;
 
     public TieredInvoiceClassifier(Supplier<AiProperties> settings) {
-        this(settings, new JdkHttpTransport());
+        this(settings, new AiKeyPool());
     }
 
+    /** Fuer Tests: eigener Transport, Pool ohne Zustandsablage. */
     public TieredInvoiceClassifier(Supplier<AiProperties> settings, HttpTransport transport) {
+        this(settings, new AiKeyPool(transport, ZustandsAblage.ohne()));
+    }
+
+    public TieredInvoiceClassifier(Supplier<AiProperties> settings, AiKeyPool pool) {
         this.settings = settings;
-        this.transport = transport;
+        this.pool = pool;
     }
 
     /**
@@ -57,22 +60,22 @@ public class TieredInvoiceClassifier implements InvoiceClassifier {
         boolean requiresVision = request.messages().stream().anyMatch(ChatMessage::hasImages);
 
         if (!requiresVision && !properties.fast().apiKeys().isEmpty()) {
-            Optional<Result> fast = tryTier(properties.fast(), this::groqProvider, request);
+            Optional<Result> fast = tryTier(properties.fast(), AiKeyPool.Stufe.FAST, request);
             if (fast.isPresent()) {
                 return fast;
             }
             log.info("Schnelle KI-Klassifikation (Groq) fehlgeschlagen, versuche das starke Modell");
         }
         if (!properties.smart().apiKeys().isEmpty()) {
-            return tryTier(properties.smart(), this::geminiProvider, request);
+            return tryTier(properties.smart(), AiKeyPool.Stufe.SMART, request);
         }
         return Optional.empty();
     }
 
-    private Optional<Result> tryTier(AiProperties.Tier tier, ProviderFactory factory, ChatRequest request) {
+    private Optional<Result> tryTier(AiProperties.Tier tier, AiKeyPool.Stufe stufe, ChatRequest request) {
         AiProvider provider;
         try {
-            provider = factory.create(tier.apiKeys());
+            provider = pool.provider(stufe, tier.apiKeys());
         } catch (IOException e) {
             log.warn("KI-Schluessel-Pool konnte nicht geladen werden: {}", e.getMessage());
             return Optional.empty();
@@ -89,16 +92,4 @@ public class TieredInvoiceClassifier implements InvoiceClassifier {
         }
     }
 
-    private AiProvider groqProvider(List<String> apiKeys) throws IOException {
-        return OpenAiCompatibleProvider.groq(Revolver.builder(apiKeys).load(), transport);
-    }
-
-    private AiProvider geminiProvider(List<String> apiKeys) throws IOException {
-        return new GoogleGeminiProvider(Revolver.builder(apiKeys).load(), transport);
-    }
-
-    @FunctionalInterface
-    private interface ProviderFactory {
-        AiProvider create(List<String> apiKeys) throws IOException;
-    }
 }

@@ -1,0 +1,145 @@
+---
+import Grundgeruest from '../layouts/Grundgeruest.astro';
+import { api, ApiFehler, type SchluesselStatus } from '../lib/api';
+
+const { sitzung } = Astro.locals;
+let schluessel: SchluesselStatus[] = [];
+let ladefehler: string | null = null;
+try {
+  schluessel = await api.kiSchluessel(sitzung.accessToken);
+} catch (fehler) {
+  ladefehler = fehler instanceof ApiFehler ? fehler.message : 'Schlüsselstatus nicht abrufbar.';
+}
+const stufen = [
+  { name: 'fast' as const, titel: 'Schnelle Stufe', anbieter: 'Groq', hinweis: 'Erste Anfrage jedes Belegs — schnell, ohne Bildeingabe.' },
+  { name: 'smart' as const, titel: 'Starke Stufe', anbieter: 'Gemini', hinweis: 'Gescannte Belege und alles, woran die schnelle Stufe scheitert.' },
+];
+const uhrzeit = (iso: string | null) =>
+  iso ? new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(iso)) : '—';
+---
+<Grundgeruest titel="KI-Schlüssel" benutzer={sitzung.benutzer.name} aktiv="schluessel">
+  <h1>KI-Schlüssel</h1>
+  <p class="sub" style="max-width:68ch">
+    Jeder hinterlegte Schlüssel mit seinem Zustand aus dem laufenden Pool: wie oft er benutzt
+    wurde, ob er gerade gesperrt ist und wann er wiederkommt. Diese Ansicht kostet nichts.
+    Die Live-Prüfung fragt jeden Schlüssel einzeln beim Anbieter an und liest aus, wie viel
+    Kontingent wirklich noch da ist — sie kostet bei Groq ein paar Token pro Schlüssel.
+  </p>
+
+  {ladefehler && <p class="meldung" role="status">{ladefehler}</p>}
+
+  <p class="schluessel-leiste">
+    <button class="btn" type="button" id="pruefen-button">Alle Schlüssel live prüfen</button>
+    <span class="klein" id="pruefen-status" role="status"></span>
+  </p>
+
+  {schluessel.length === 0 && !ladefehler && (
+    <div class="karte"><div class="inhalt">
+      <p style="margin:0">Es ist noch kein Schlüssel hinterlegt. <a href="/einstellungen#ki">In den Einstellungen eintragen →</a></p>
+    </div></div>
+  )}
+
+  {stufen.map((stufe) => {
+    const zeilen = schluessel.filter((s) => s.stufe === stufe.name);
+    return zeilen.length > 0 && (
+      <div class="karte">
+        <h3>{stufe.titel} · {stufe.anbieter}</h3>
+        <div class="inhalt">
+          <p class="klein" style="margin:0 0 1rem">{stufe.hinweis}</p>
+          <div class="table-scroll"><table class="schluesseltabelle">
+            <thead>
+              <tr>
+                <th>#</th><th>Schlüssel</th><th>Zustand</th>
+                <th class="r">Anfragen</th><th class="r">Fehler</th><th class="r">Limit erreicht</th>
+                <th>Kontingent</th>
+              </tr>
+            </thead>
+            <tbody>
+              {zeilen.map((zeile) => (
+                <tr data-stufe={zeile.stufe} data-position={zeile.position}>
+                  <td class="konto">{zeile.position}</td>
+                  <td class="konto">{zeile.schluessel}</td>
+                  <td class="zelle-zustand">
+                    <span class={'zustand ' + (zeile.verfuegbar ? 'z-frei' : 'z-offen')}>
+                      {zeile.verfuegbar ? 'Bereit' : 'Gesperrt bis ' + uhrzeit(zeile.gesperrtBis)}
+                    </span>
+                  </td>
+                  <td class="r num">{zeile.nutzungen}</td>
+                  <td class="r num">{zeile.fehler}</td>
+                  <td class="r num">{zeile.kontingenttreffer}</td>
+                  <td class="zelle-kontingent klein">Noch nicht geprüft</td>
+                </tr>
+              ))}
+            </tbody>
+          </table></div>
+        </div>
+      </div>
+    );
+  })}
+</Grundgeruest>
+
+<style>
+  .schluessel-leiste { display:flex; flex-wrap:wrap; align-items:center; gap:.8rem; margin:1.5rem 0; }
+  .schluesseltabelle { width:100%; border-collapse:collapse; font-size:.85rem; }
+  .schluesseltabelle th { text-align:left; padding:.6rem .4rem; font:11px var(--font-data); color:var(--text-2); }
+  .schluesseltabelle td { padding:.7rem .4rem; border-top:1px solid var(--border); vertical-align:top; }
+  .schluesseltabelle .num { font-variant-numeric:tabular-nums; }
+  .zelle-kontingent { min-width:16ch; }
+  .zelle-kontingent b { display:block; font-size:.85rem; color:var(--text); }
+</style>
+
+<script>
+  const button = document.querySelector<HTMLButtonElement>('#pruefen-button');
+  const status = document.querySelector<HTMLElement>('#pruefen-status');
+
+  const uhrzeit = (iso: string | null) =>
+    iso ? new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      .format(new Date(iso)) : null;
+
+  if (button && status) {
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      status.textContent = 'Schlüssel werden beim Anbieter angefragt …';
+      try {
+        const antwort = await fetch('/schluessel/pruefen', { method: 'POST' });
+        const ergebnis = await antwort.json();
+        if (ergebnis.fehler) {
+          status.textContent = ergebnis.fehler;
+          return;
+        }
+        for (const zeile of ergebnis as any[]) {
+          const tr = document.querySelector<HTMLTableRowElement>(
+            `tr[data-stufe="${zeile.stufe}"][data-position="${zeile.position}"]`);
+          if (!tr) continue;
+          const zustand = tr.querySelector('.zelle-zustand span');
+          const kontingent = tr.querySelector('.zelle-kontingent');
+          if (zustand) {
+            zustand.className = 'zustand ' + (zeile.probe?.ok ? 'z-frei' : 'z-abg');
+            zustand.textContent = zeile.probe?.ok
+              ? 'Erreichbar · ' + zeile.probe.dauerMs + ' ms'
+              : (zeile.probe?.meldung ?? 'Nicht erreichbar');
+          }
+          if (kontingent) {
+            const teile: string[] = [];
+            if (zeile.probe?.restAnfragen !== null && zeile.probe?.restAnfragen !== undefined) {
+              teile.push(zeile.probe.restAnfragen + ' Anfragen frei');
+            }
+            if (zeile.probe?.restToken !== null && zeile.probe?.restToken !== undefined) {
+              teile.push(zeile.probe.restToken.toLocaleString('de-DE') + ' Token frei');
+            }
+            const zurueck = uhrzeit(zeile.probe?.kontingentZurueckAb ?? null);
+            if (zurueck) teile.push('wieder ab ' + zurueck);
+            kontingent.textContent = teile.length > 0
+              ? teile.join(' · ')
+              : 'Der Anbieter meldet kein Restkontingent zurück.';
+          }
+        }
+        status.textContent = 'Geprüft um ' + new Date().toLocaleTimeString('de-DE');
+      } catch {
+        status.textContent = 'Prüfung fehlgeschlagen.';
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
+</script>

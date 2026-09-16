@@ -13,12 +13,18 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Die eigenen Bausteine (ai-gateway, revolver) liegen in der privaten Registry
+      # packages.tstieh.de. Ohne diese Zugangsdaten bricht schon das Aufloesen der
+      # Abhaengigkeiten mit 401 ab. Der CI-Token darf ausschliesslich lesen.
       - name: JDK 25 einrichten
         uses: actions/setup-java@v5
         with:
           java-version: '25'
           distribution: temurin
           cache: maven
+          server-id: packages-releases
+          server-username: MAVEN_REGISTRY_USERNAME
+          server-password: MAVEN_REGISTRY_PASSWORD
 
       # Die Zeichenerkennung fuer gescannte Belege ruft 'tesseract' auf. Ohne das Paket
       # ueberspringt die Testsuite die Gegenprobe mit dem echten Werkzeug - und dann wuerde
@@ -30,6 +36,13 @@ jobs:
 
       - name: Testsuite
         run: mvn -B verify
+        env:
+          MAVEN_REGISTRY_USERNAME: ${{ secrets.MAVEN_REGISTRY_USERNAME }}
+          MAVEN_REGISTRY_PASSWORD: ${{ secrets.MAVEN_REGISTRY_PASSWORD }}
+          # Maven scheitert an packages.tstieh.de sonst im TLS-Handshake
+          # ("unrecognized_name") - eine Eigenheit zwischen Mavens HTTP-Transport und der
+          # Reverse-Proxy-Terminierung. Mit TLSv1.2 laeuft es zuverlaessig.
+          MAVEN_OPTS: "-Djdk.tls.client.protocols=TLSv1.2"
 
       - name: Testberichte sichern
         if: always()
@@ -88,11 +101,29 @@ jobs:
         id: image
         run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
+      # Der Anwendungs-Build laeuft im Image selbst und braucht dieselben Lesezugangsdaten.
+      # Als BuildKit-Secret, damit sie in keiner Image-Schicht landen.
+      - name: Maven-Zugangsdaten fuer den Image-Build bereitstellen
+        env:
+          MAVEN_REGISTRY_USERNAME: ${{ secrets.MAVEN_REGISTRY_USERNAME }}
+          MAVEN_REGISTRY_PASSWORD: ${{ secrets.MAVEN_REGISTRY_PASSWORD }}
+        run: |
+          umask 077
+          {
+            echo '<settings><servers><server>'
+            echo '  <id>packages-releases</id>'
+            echo "  <username>${MAVEN_REGISTRY_USERNAME}</username>"
+            echo "  <password>${MAVEN_REGISTRY_PASSWORD}</password>"
+            echo '</server></servers></settings>'
+          } > "${RUNNER_TEMP}/maven-settings.xml"
+
       - name: Image bauen und veroeffentlichen
         uses: docker/build-push-action@v6
         with:
           context: .
           push: ${{ github.event_name == 'push' }}
+          secret-files: |
+            maven_settings=${{ runner.temp }}/maven-settings.xml
           tags: |
             ${{ steps.image.outputs.name }}:latest
             ${{ steps.image.outputs.name }}:${{ github.sha }}

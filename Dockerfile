@@ -4,12 +4,21 @@
 FROM maven:3.9-eclipse-temurin-25 AS build
 WORKDIR /build
 
+# Die eigenen Bausteine (ai-gateway, revolver) kommen aus der privaten Registry
+# packages.tstieh.de. Die Zugangsdaten kommen als BuildKit-Secret herein - so landen sie in
+# keiner Image-Schicht und in keinem Verlauf. Lokal:
+#   docker build --secret id=maven_settings,src=$HOME/.m2/settings.xml .
+# MAVEN_OPTS/TLSv1.2: sonst scheitert Maven dort im TLS-Handshake ("unrecognized_name").
+ENV MAVEN_OPTS="-Djdk.tls.client.protocols=TLSv1.2"
+
 # Abhaengigkeiten zuerst aufloesen, damit der Layer bei reinen Codeaenderungen haelt.
 COPY pom.xml ./
-RUN mvn -B -q dependency:go-offline
+RUN --mount=type=secret,id=maven_settings,target=/root/.m2/settings.xml \
+    mvn -B -q dependency:go-offline
 
 COPY src ./src
-RUN mvn -B -q package -DskipTests
+RUN --mount=type=secret,id=maven_settings,target=/root/.m2/settings.xml \
+    mvn -B -q package -DskipTests
 
 # --- Laufzeit ----------------------------------------------------------------
 FROM eclipse-temurin:25-jre AS runtime

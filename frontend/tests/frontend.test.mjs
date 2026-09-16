@@ -38,6 +38,14 @@ test('Prüftisch: geschützte Seiten, Originale und vollständige Formularwege',
   const mail = { aktiv: true, protokoll: 'imaps', host: 'mail.test', port: 993, benutzername: 'belege',
     passwortGesetzt: true, ordner: 'INBOX', verarbeitetOrdner: 'Verarbeitet', fehlgeschlagenOrdner: 'Fehler',
     taktSekunden: 60, maxNachrichtenProDurchlauf: 10, maxAnhangGroesseKb: 10000, erlaubteAbsender: [] };
+  const schluessel = [
+    { stufe: 'fast', anbieter: 'groq', position: 1, schluessel: 'gsk_…a1b2', verfuegbar: true,
+      gesperrtBis: null, nutzungen: 12, erfolge: 11, fehler: 1, kontingenttreffer: 0,
+      zuverlaessigkeit: 0.9, probe: null },
+    { stufe: 'smart', anbieter: 'google-gemini', position: 1, schluessel: 'AIz…9876', verfuegbar: false,
+      gesperrtBis: '2026-09-09T12:30:00Z', nutzungen: 4, erfolge: 3, fehler: 1, kontingenttreffer: 1,
+      zuverlaessigkeit: 0.6, probe: null },
+  ];
   const calls = [];
   const backend = createServer(async (req, res) => {
     const chunks = [];
@@ -49,6 +57,15 @@ test('Prüftisch: geschützte Seiten, Originale und vollständige Formularwege',
     if (path === '/api/v1/belege' && body.includes('defekt.xml')) {
       res.statusCode = 422;
       res.end(JSON.stringify({ detail: 'Ungültige XML-Struktur in Zeile 2, Spalte 5: End-Tag fehlt' }));
+      return;
+    }
+    if (path === '/api/v1/einstellungen/ki/schluessel') { res.end(JSON.stringify(schluessel)); return; }
+    if (path === '/api/v1/einstellungen/ki/schluessel/pruefen') {
+      res.end(JSON.stringify(schluessel.map((eintrag) => ({ ...eintrag, probe: {
+        ok: eintrag.stufe === 'fast', meldung: eintrag.stufe === 'fast' ? 'Erreichbar' : 'Kontingent erschoepft',
+        dauerMs: 120, restAnfragen: eintrag.stufe === 'fast' ? 941 : null,
+        restToken: eintrag.stufe === 'fast' ? 17532 : null,
+        kontingentZurueckAb: eintrag.stufe === 'fast' ? null : '2026-09-09T12:30:00Z' } }))));
       return;
     }
     if (path.endsWith('/beleg')) { res.setHeader('Content-Type', 'application/xml'); res.end('<Invoice><Note>&lt;script&gt;</Note></Invoice>'); }
@@ -102,7 +119,7 @@ test('Prüftisch: geschützte Seiten, Originale und vollständige Formularwege',
   await t.test('Anmeldung bleibt erforderlich, Seiten rendern echte API-Daten ohne Token-Leak', async () => {
     const anonymous = await fetch(origin + '/', { redirect: 'manual' });
     assert.match(anonymous.headers.get('location'), /^\/auth\/login/);
-    for (const path of ['/', '/pruefliste', '/export', '/einstellungen', '/vorgang/test-beleg']) {
+    for (const path of ['/', '/pruefliste', '/export', '/schluessel', '/einstellungen', '/vorgang/test-beleg']) {
       const response = await get(path);
       assert.equal(response.status, 200, path);
       const html = await response.text();
@@ -139,6 +156,24 @@ test('Prüftisch: geschützte Seiten, Originale und vollständige Formularwege',
     vorgang.gedanken = gedanken;
     assert.ok(!html.includes('gedankenlade'));
     assert.match(html, /Prüfbare Position/);
+  });
+
+  await t.test('Schlüsselansicht zeigt jeden Schlüssel maskiert samt Zustand', async () => {
+    const html = await (await get('/schluessel')).text();
+    for (const text of ['KI-Schlüssel', 'gsk_…a1b2', 'AIz…9876', 'Bereit', 'Gesperrt bis',
+      'Schnelle Stufe', 'Starke Stufe', 'Alle Schlüssel live prüfen']) {
+      assert.ok(html.includes(text), text);
+    }
+  });
+
+  await t.test('Die Live-Prüfung läuft nur per POST und meldet Restkontingent zurück', async () => {
+    assert.equal((await get('/schluessel/pruefen')).status, 404);
+    const antwort = await get('/schluessel/pruefen', { method: 'POST', headers: { origin } });
+    assert.equal(antwort.status, 200);
+    const ergebnis = await antwort.json();
+    assert.equal(ergebnis[0].probe.restAnfragen, 941);
+    assert.equal(ergebnis[1].probe.ok, false);
+    assert.ok(calls.some((c) => c.path === '/api/v1/einstellungen/ki/schluessel/pruefen' && c.method === 'POST'));
   });
 
   await t.test('Prüfliste öffnet Auswahl, Original und Prüfung zusammen; Filter behalten die Auswahl', async () => {

@@ -13,6 +13,8 @@ import de.pegasus.invoicematcher.api.dto.KontenrahmenResponse;
 import de.pegasus.invoicematcher.api.dto.MailEingangRequest;
 import de.pegasus.invoicematcher.api.dto.MailEingangResponse;
 import de.pegasus.invoicematcher.classification.ai.AiConnectionTester;
+import de.pegasus.invoicematcher.classification.ai.AiKeyStatus;
+import de.pegasus.invoicematcher.classification.ai.AiKeyStatusService;
 import de.pegasus.invoicematcher.config.AccountingSettingsService;
 import de.pegasus.invoicematcher.config.AiSettingsService;
 import de.pegasus.invoicematcher.config.CompanySettingsService;
@@ -25,6 +27,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 /**
  * Firmendaten, Belegannahme per Mail, Kontenrahmen, Geschaeftspartner und KI-Modellwahl - vorher
@@ -40,16 +44,19 @@ public class EinstellungenController {
     private final PartnerSettingsService partners;
     private final AiSettingsService ai;
     private final AiConnectionTester connectionTester;
+    private final AiKeyStatusService keyStatus;
 
     public EinstellungenController(CompanySettingsService company, MailIntakeSettingsService mail,
                                    AccountingSettingsService accounting, PartnerSettingsService partners,
-                                   AiSettingsService ai, AiConnectionTester connectionTester) {
+                                   AiSettingsService ai, AiConnectionTester connectionTester,
+                                   AiKeyStatusService keyStatus) {
         this.company = company;
         this.mail = mail;
         this.accounting = accounting;
         this.partners = partners;
         this.ai = ai;
         this.connectionTester = connectionTester;
+        this.keyStatus = keyStatus;
     }
 
     @GetMapping("/firma")
@@ -101,6 +108,25 @@ public class EinstellungenController {
     @PutMapping("/ki")
     public KiResponse kiSpeichern(@Valid @RequestBody KiRequest request) {
         return KiResponse.of(ai.update(request.toAiProperties()));
+    }
+
+    /**
+     * Der Zustand jedes einzelnen Schluessels, wie ihn der laufende Pool kennt - kostenlos,
+     * ohne Anfrage an einen Anbieter.
+     */
+    @GetMapping("/ki/schluessel")
+    public List<AiKeyStatus> kiSchluessel() {
+        return keyStatus.status();
+    }
+
+    /**
+     * Derselbe Zustand mit einer Lebendpruefung je Schluessel: erreichbar, wie viel Kontingent
+     * noch da ist und wann es zurueckkommt. Kostet bei Groq ein paar Token je Schluessel,
+     * laeuft deshalb nur auf ausdrueckliche Anforderung ({@code POST}, nicht {@code GET}).
+     */
+    @PostMapping("/ki/schluessel/pruefen")
+    public List<AiKeyStatus> kiSchluesselPruefen() {
+        return keyStatus.pruefe();
     }
 
     @PostMapping("/ki/test")

@@ -5,7 +5,7 @@ interface Props {
   titel: string;
   /** Name aus dem Konto; fehlt auf Seiten ausserhalb der Anmeldung. */
   benutzer?: string;
-  aktiv?: 'uebersicht' | 'pruefliste' | 'export' | 'einstellungen';
+  aktiv?: 'uebersicht' | 'pruefliste' | 'export' | 'schluessel' | 'einstellungen';
   breit?: boolean;
 }
 
@@ -19,6 +19,7 @@ const navigation = [
   { pfad: '/', name: 'Übersicht', schluessel: 'uebersicht' },
   { pfad: '/pruefliste', name: 'Prüfliste', schluessel: 'pruefliste' },
   { pfad: '/export', name: 'Export', schluessel: 'export' },
+  { pfad: '/schluessel', name: 'KI-Schlüssel', schluessel: 'schluessel' },
   { pfad: '/einstellungen', name: 'Einstellungen', schluessel: 'einstellungen' },
 ] as const;
 ---

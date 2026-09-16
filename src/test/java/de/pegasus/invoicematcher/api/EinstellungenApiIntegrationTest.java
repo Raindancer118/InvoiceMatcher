@@ -203,6 +203,28 @@ class EinstellungenApiIntegrationTest {
     }
 
     @Test
+    void keyStatusListsEveryStoredKeyMaskedAndWithoutCallingAnyProvider() throws Exception {
+        mockMvc.perform(put("/api/v1/einstellungen/ki")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"fastModell": "llama-test", "fastSchluessel": ["gsk_geheim_abcd", "gsk_zweiter_efgh"],
+                                 "smartModell": "gemini-test", "smartSchluessel": ["AIzaGeheim1234"]}
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/einstellungen/ki/schluessel"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].stufe").value("fast"))
+                .andExpect(jsonPath("$[0].anbieter").value("groq"))
+                .andExpect(jsonPath("$[0].schluessel").value("gsk_…abcd"))
+                .andExpect(jsonPath("$[0].verfuegbar").value(true))
+                .andExpect(jsonPath("$[0].probe").doesNotExist())
+                .andExpect(jsonPath("$[2].stufe").value("smart"))
+                .andExpect(jsonPath("$[2].schluessel").value("AIz…1234"));
+    }
+
+    @Test
     void kiConnectionTestReportsFailureWithoutAKey() throws Exception {
         mockMvc.perform(post("/api/v1/einstellungen/ki/test")
                         .contentType(MediaType.APPLICATION_JSON)
