@@ -40,7 +40,13 @@ public record AiKeyStatus(@JsonProperty("stufe") String stufe,
                         @JsonProperty("kontingentZurueckAb") Instant kontingentZurueckAb) {
     }
 
-    /** "gsk_abcdefgh1234" wird zu "gsk_…1234" - genug zum Wiedererkennen, zu wenig zum Benutzen. */
+    /**
+     * "gsk_abcdefgh1234" wird zu "gsk_…1234" - genug zum Wiedererkennen, zu wenig zum Benutzen.
+     *
+     * <p>Immer vier Zeichen vorn und vier hinten, unabhaengig vom Aufbau des Schluessels: eine
+     * am Anbieterpraefix ausgerichtete Maske wuerde je nach Schluessel unterschiedlich lang
+     * ausfallen und die Liste damit schwerer vergleichbar machen.
+     */
     public static String maskiere(String apiKey) {
         if (apiKey == null || apiKey.isBlank()) {
             return "—";
@@ -49,8 +55,6 @@ public record AiKeyStatus(@JsonProperty("stufe") String stufe,
         if (schluessel.length() <= 8) {
             return "…" + schluessel.substring(Math.max(0, schluessel.length() - 2));
         }
-        int praefix = Math.min(4, schluessel.indexOf('_') + 1);
-        return schluessel.substring(0, praefix > 0 ? praefix : 3) + "…"
-                + schluessel.substring(schluessel.length() - 4);
+        return schluessel.substring(0, 4) + "…" + schluessel.substring(schluessel.length() - 4);
     }
 }

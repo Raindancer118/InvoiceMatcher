@@ -43,7 +43,7 @@ class AiKeyStatusServiceTest {
         List<AiKeyStatus> status = service(new FakeHttpTransport()).status();
 
         assertThat(status).extracting(AiKeyStatus::schluessel)
-                .containsExactly("gsk_…a1b2", "gsk_…c3d4", "AIz…9876");
+                .containsExactly("gsk_…a1b2", "gsk_…c3d4", "AIza…9876");
         assertThat(status).noneSatisfy(zeile ->
                 assertThat(zeile.schluessel()).contains("erster_schluessel"));
     }

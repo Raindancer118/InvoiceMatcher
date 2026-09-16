@@ -127,8 +127,10 @@ const uhrzeit = (iso: string | null) =>
             if (zeile.probe?.restToken !== null && zeile.probe?.restToken !== undefined) {
               teile.push(zeile.probe.restToken.toLocaleString('de-DE') + ' Token frei');
             }
+            // "wieder ab" nur, wenn wirklich nichts mehr geht: bei einem gesunden Schluessel
+            // ist der Zeitpunkt bloss das Ende des laufenden Zaehlfensters, kein Warten.
             const zurueck = uhrzeit(zeile.probe?.kontingentZurueckAb ?? null);
-            if (zurueck) teile.push('wieder ab ' + zurueck);
+            if (zurueck && !zeile.probe?.ok) teile.push('wieder ab ' + zurueck);
             kontingent.textContent = teile.length > 0
               ? teile.join(' · ')
               : 'Der Anbieter meldet kein Restkontingent zurück.';

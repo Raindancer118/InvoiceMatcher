@@ -221,7 +221,7 @@ class EinstellungenApiIntegrationTest {
                 .andExpect(jsonPath("$[0].verfuegbar").value(true))
                 .andExpect(jsonPath("$[0].probe").doesNotExist())
                 .andExpect(jsonPath("$[2].stufe").value("smart"))
-                .andExpect(jsonPath("$[2].schluessel").value("AIz…1234"));
+                .andExpect(jsonPath("$[2].schluessel").value("AIza…1234"));
     }
 
     @Test
