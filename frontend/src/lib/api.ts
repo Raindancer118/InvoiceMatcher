@@ -95,6 +95,12 @@ export interface SchluesselStatus {
   } | null;
 }
 
+/** Steuerung des Human-in-the-Loop. */
+export interface Pruefung {
+  freigabeschwelle: number;
+  benachrichtigungAktiv: boolean;
+}
+
 export interface Firma {
   name: string;
   ustIdNr: string | null;
@@ -259,6 +265,15 @@ export const api = {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(geschaeftspartner),
+    }),
+
+  pruefung: (token: string) => json<Pruefung>('/api/v1/einstellungen/pruefung', token),
+
+  pruefungSpeichern: (token: string, freigabeschwelle: number) =>
+    json<Pruefung>('/api/v1/einstellungen/pruefung', token, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ freigabeschwelle }),
     }),
 
   kiEinstellungen: (token: string) => json<Ki>('/api/v1/einstellungen/ki', token),

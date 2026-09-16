@@ -19,6 +19,11 @@ import java.util.List;
  */
 public final class InvoiceClassificationPrompt {
 
+    /**
+     * Schwellenwerte stehen hier bewusst nicht als Zahl, sondern als Feldname: sie kommen aus
+     * dem Kontenrahmen, den die Einstellungen-Oberflaeche jederzeit aendern kann. Eine im Text
+     * eingebrannte Zahl waere ein zweiter, stiller Wert neben dem sichtbaren.
+     */
     private static final String ABLAUFLOGIK = """
             Du bist die Kontierungs-KI einer Buchhaltungssoftware. Klassifiziere den folgenden Beleg
             und antworte AUSSCHLIESSLICH mit einem einzigen JSON-Objekt (kein Markdown, kein Text
@@ -50,7 +55,8 @@ public final class InvoiceClassificationPrompt {
                Netto-, Steuer- und Bruttobetrag vorhanden? Fehlt etwas -> document_type = "...zur
                Prüfung" (je nach Richtung), buchungszeilen leer, aber personenkonto/belegdatum/
                belegfeld_1 trotzdem befuellen, soweit bekannt (Kontext fuer die menschliche Pruefung).
-            3. Gilt Netto + Steuer = Brutto (Toleranz 0,01 EUR)? Nein -> wie Punkt 2 behandeln.
+            3. Gilt Netto + Steuer = Brutto (Toleranz: roundingTolerance aus dem Kontenrahmen)?
+               Nein -> wie Punkt 2 behandeln.
             4. Enthaelt eine Position einer Eingangsrechnung, die Anlagevermoegen ist (siehe
                fixedAssetKeywords im Kontenrahmen), einen Nettoeinzelpreis ueber der GWG-Grenze
                (gwgLimit)? Ja -> wie Punkt 2 behandeln (kein Konto raten, das ist eine

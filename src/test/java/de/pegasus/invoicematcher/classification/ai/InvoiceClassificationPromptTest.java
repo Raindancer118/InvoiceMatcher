@@ -58,6 +58,17 @@ class InvoiceClassificationPromptTest {
         assertThat(text).contains("document_type");
     }
 
+    /** Schwellenwerte kommen aus dem Kontenrahmen, nicht als eingebrannte Zahl aus dem Text. */
+    @Test
+    void takesItsThresholdsFromTheEditableAccountingSettings() {
+        String text = onlyMessage(InvoiceClassificationPrompt.build(invoice(SourceFormat.PDF), company,
+                accounting, partners, List.of())).content();
+
+        assertThat(text).contains("roundingTolerance");
+        assertThat(text).contains("gwgLimit");
+        assertThat(text).doesNotContain("Toleranz 0,01 EUR");
+    }
+
     @Test
     void attachesRenderedPagesForScannedDocuments() {
         BufferedImage page = new BufferedImage(4, 4, BufferedImage.TYPE_INT_RGB);

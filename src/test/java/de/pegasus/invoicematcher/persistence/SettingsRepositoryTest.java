@@ -233,4 +233,16 @@ class SettingsRepositoryTest {
                 "INBOX", "Verarbeitet", "Fehlgeschlagen", Duration.ofMinutes(5), 50, DataSize.ofMegabytes(20),
                 List.of("a@example.com", "b@example.com"));
     }
+
+    @Test
+    void theAutoApprovalThresholdSurvivesARestart() {
+        repository.saveReview(new BigDecimal("0.92"));
+
+        assertThat(repository.loadReviewThreshold()).contains(new BigDecimal("0.92"));
+    }
+
+    @Test
+    void reportsAnEmptyThresholdBeforeAnythingWasStored() {
+        assertThat(repository.loadReviewThreshold()).isEmpty();
+    }
 }

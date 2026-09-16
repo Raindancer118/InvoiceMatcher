@@ -38,6 +38,9 @@ class SettingsSeederTest {
             new BigDecimal("800.00"), new BigDecimal("0.01"), List.of(), List.of(), List.of(), List.of());
     private static final PartnerProperties VORGABE_PARTNERS = new PartnerProperties(
             new PartnerProperties.Diverse(70001, 10001), List.of());
+    private static final ReviewProperties VORGABE_PRUEFUNG = new ReviewProperties(
+            new java.math.BigDecimal("0.85"), null);
+
     private static final AiProperties VORGABE_AI = new AiProperties(
             new AiProperties.Tier("llama-3.3-70b-versatile", List.of()),
             new AiProperties.Tier("gemini-2.5-pro", List.of()));
@@ -70,7 +73,7 @@ class SettingsSeederTest {
 
     private SettingsSeeder seeder() {
         return new SettingsSeeder(repository, VORGABE_FIRMA, VORGABE_MAIL, VORGABE_ACCOUNTING, VORGABE_PARTNERS,
-                VORGABE_AI);
+                VORGABE_AI, VORGABE_PRUEFUNG);
     }
 
     @Test

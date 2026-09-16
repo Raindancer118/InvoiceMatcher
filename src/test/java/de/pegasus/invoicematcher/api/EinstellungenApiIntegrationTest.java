@@ -184,6 +184,31 @@ class EinstellungenApiIntegrationTest {
     }
 
     @Test
+    void theApprovalThresholdCanBeReadAndChanged() throws Exception {
+        mockMvc.perform(get("/api/v1/einstellungen/pruefung"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.freigabeschwelle").value(0.85));
+
+        mockMvc.perform(put("/api/v1/einstellungen/pruefung")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"freigabeschwelle\": 0.7}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.freigabeschwelle").value(0.7));
+
+        mockMvc.perform(get("/api/v1/einstellungen/pruefung"))
+                .andExpect(jsonPath("$.freigabeschwelle").value(0.7));
+    }
+
+    /** Eine Konfidenz groesser 1 gibt es nicht - das gehoert abgewiesen, nicht gespeichert. */
+    @Test
+    void refusesAThresholdOutsideTheConfidenceRange() throws Exception {
+        mockMvc.perform(put("/api/v1/einstellungen/pruefung")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"freigabeschwelle\": 1.5}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void kiSettingsNeverExposeTheStoredKeysThemselves() throws Exception {
         mockMvc.perform(put("/api/v1/einstellungen/ki")
                         .contentType(MediaType.APPLICATION_JSON)

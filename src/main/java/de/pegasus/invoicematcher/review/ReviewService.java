@@ -17,6 +17,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executor;
+import java.util.function.Supplier;
 
 /**
  * Der Human-in-the-Loop: klassifiziert einen Beleg und entscheidet, ob das Ergebnis ohne
@@ -41,13 +42,13 @@ public class ReviewService {
 
     private final ClassificationService classification;
     private final ReviewRepository repository;
-    private final ReviewProperties properties;
+    private final Supplier<ReviewProperties> properties;
     private final ReviewNotifier notifier;
     private final DocumentStore documents;
     private final Executor verarbeitung;
 
     public ReviewService(ClassificationService classification, ReviewRepository repository,
-                         ReviewProperties properties, ReviewNotifier notifier, DocumentStore documents,
+                         Supplier<ReviewProperties> properties, ReviewNotifier notifier, DocumentStore documents,
                          @Qualifier(BELEGVERARBEITUNG) Executor verarbeitung) {
         this.classification = classification;
         this.repository = repository;
@@ -93,7 +94,7 @@ public class ReviewService {
                     List.of(Finding.violation("annahme",
                             "Beleg konnte nicht verarbeitet werden: " + e.getMessage())), null);
         }
-        ReviewStatus status = properties.needsReview(report.result())
+        ReviewStatus status = properties.get().needsReview(report.result())
                 ? ReviewStatus.OFFEN
                 : ReviewStatus.AUTOMATISCH_FREIGEGEBEN;
         ReviewCase fertig = repository.save(find(id).classified(report, status, Instant.now()));

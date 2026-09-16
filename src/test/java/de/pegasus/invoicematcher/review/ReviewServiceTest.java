@@ -29,14 +29,16 @@ class ReviewServiceTest {
 
     private final List<ReviewCase> notified = new ArrayList<>();
     private final List<Runnable> wartend = new ArrayList<>();
+    /** Veraenderbar, damit ein Test die Schwelle mitten im Betrieb verschieben kann. */
+    private BigDecimal schwelle = new BigDecimal("0.85");
     private ReviewService service;
 
     @BeforeEach
     void setUp() {
         ClassificationService classification = Kontierung.standardClassificationService();
-        ReviewProperties properties = new ReviewProperties(new BigDecimal("0.85"), null);
         // Der Hintergrundlauf sofort im Test-Faden: dieselbe Reihenfolge, aber vorhersagbar.
-        service = new ReviewService(classification, new InMemoryReviewRepository(), properties, notified::add,
+        service = new ReviewService(classification, new InMemoryReviewRepository(),
+                () -> new ReviewProperties(schwelle, null), notified::add,
                 new InMemoryDocumentStore(), Runnable::run);
     }
 
@@ -146,7 +148,7 @@ class ReviewServiceTest {
     @Test
     void takesTheDocumentBeforeTheClassificationEvenStarts() {
         ReviewService verzoegert = new ReviewService(Kontierung.standardClassificationService(),
-                new InMemoryReviewRepository(), new ReviewProperties(new BigDecimal("0.85"), null),
+                new InMemoryReviewRepository(), () -> new ReviewProperties(new BigDecimal("0.85"), null),
                 notified::add, new InMemoryDocumentStore(), wartend::add);
 
         ReviewCase angenommen = verzoegert.submit(Belege.document("08_ZUGFeRD_Saegewerk_Testtanne.pdf"));
@@ -167,7 +169,7 @@ class ReviewServiceTest {
     @Test
     void aCaseStillBeingClassifiedCannotBeDecided() {
         ReviewService verzoegert = new ReviewService(Kontierung.standardClassificationService(),
-                new InMemoryReviewRepository(), new ReviewProperties(new BigDecimal("0.85"), null),
+                new InMemoryReviewRepository(), () -> new ReviewProperties(new BigDecimal("0.85"), null),
                 notified::add, new InMemoryDocumentStore(), wartend::add);
         ReviewCase angenommen = verzoegert.submit(Belege.document("05_PDF_Buerobedarf_Kopierer.pdf"));
 
@@ -186,7 +188,7 @@ class ReviewServiceTest {
         // Beleg, den keiner lesen kann.
         ReviewService kaputt = new ReviewService(
                 Kontierung.classificationServiceWith(new ExtractionService(List.of())),
-                new InMemoryReviewRepository(), new ReviewProperties(new BigDecimal("0.85"), null),
+                new InMemoryReviewRepository(), () -> new ReviewProperties(new BigDecimal("0.85"), null),
                 notified::add, new InMemoryDocumentStore(), wartend::add);
 
         assertThatThrownBy(() -> kaputt.submit(Belege.document("05_PDF_Buerobedarf_Kopierer.pdf")))
@@ -208,7 +210,7 @@ class ReviewServiceTest {
             }
         };
         ReviewService service = new ReviewService(explodiert, new InMemoryReviewRepository(),
-                new ReviewProperties(new BigDecimal("0.85"), null), notified::add,
+                () -> new ReviewProperties(new BigDecimal("0.85"), null), notified::add,
                 new InMemoryDocumentStore(), Runnable::run);
 
         ReviewCase angenommen = service.submit(Belege.document("05_PDF_Buerobedarf_Kopierer.pdf"));
@@ -218,6 +220,21 @@ class ReviewServiceTest {
         assertThat(danach.report().findings()).anySatisfy(finding ->
                 assertThat(finding.message()).contains("nicht verarbeitet werden"));
         assertThat(service.document(angenommen.id())).isNotNull();
+    }
+
+    /**
+     * Die Freigabeschwelle kommt aus den Einstellungen und wird bei jedem Beleg neu gelesen -
+     * sonst muesste man fuer eine vorsichtigere Einstellung die Anwendung neu starten.
+     */
+    @Test
+    void readsTheApprovalThresholdFreshlyForEveryDocument() {
+        // Der Beleg kommt mit Konfidenz 0,95 aus der Klassifikation.
+        assertThat(eingereicht("01_PDF_Klaus_Furniere.pdf").status())
+                .isEqualTo(ReviewStatus.AUTOMATISCH_FREIGEGEBEN);
+
+        schwelle = new BigDecimal("0.99");
+
+        assertThat(eingereicht("01_PDF_Klaus_Furniere.pdf").status()).isEqualTo(ReviewStatus.OFFEN);
     }
 
     @Test

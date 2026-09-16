@@ -160,6 +160,21 @@ public class SettingsRepository {
                 .update();
     }
 
+    public Optional<java.math.BigDecimal> loadReviewThreshold() {
+        return jdbc.sql("SELECT auto_approve_threshold FROM review_settings WHERE id = 1")
+                .query((row, i) -> new java.math.BigDecimal(row.getString("auto_approve_threshold")))
+                .optional();
+    }
+
+    public void saveReview(java.math.BigDecimal autoApproveThreshold) {
+        jdbc.sql("""
+                INSERT INTO review_settings (id, auto_approve_threshold) VALUES (1, :schwelle)
+                ON CONFLICT (id) DO UPDATE SET auto_approve_threshold = excluded.auto_approve_threshold
+                """)
+                .param("schwelle", autoApproveThreshold.toPlainString())
+                .update();
+    }
+
     public Optional<AiProperties> loadAi() {
         return jdbc.sql("""
                 SELECT fast_model, fast_api_keys_encrypted, smart_model, smart_api_keys_encrypted

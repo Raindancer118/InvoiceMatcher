@@ -81,3 +81,13 @@ CREATE TABLE IF NOT EXISTS ai_settings (
     smart_model              TEXT NOT NULL,
     smart_api_keys_encrypted TEXT
 );
+
+-- Freigabeschwelle des Human-in-the-Loop. Als Text abgelegt, damit der Wert exakt so
+-- zurueckkommt, wie er eingegeben wurde - eine Gleitkommazahl waere hier die falsche Genauigkeit.
+-- Die Benachrichtigungseinstellungen stehen bewusst nicht hier: sie entscheiden beim Start
+-- ueber die Existenz des Mail-Versenders (MailReviewNotifier) und liessen sich zur Laufzeit
+-- ohnehin nicht umschalten.
+CREATE TABLE IF NOT EXISTS review_settings (
+    id                     INTEGER PRIMARY KEY CHECK (id = 1),
+    auto_approve_threshold TEXT NOT NULL
+);

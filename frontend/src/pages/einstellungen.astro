@@ -10,6 +10,7 @@ const mail = await api.mailEingang(sitzung.accessToken);
 const kontenrahmen = await api.kontenrahmen(sitzung.accessToken);
 const geschaeftspartner = await api.geschaeftspartner(sitzung.accessToken);
 const ki = await api.kiEinstellungen(sitzung.accessToken);
+const pruefung = await api.pruefung(sitzung.accessToken);
 ---
 <Grundgeruest titel="Einstellungen" benutzer={sitzung.benutzer.name} aktiv="einstellungen">
   {meldung && <p class="meldung" role="status">{meldung}</p>}
@@ -21,7 +22,7 @@ const ki = await api.kiEinstellungen(sitzung.accessToken);
        Kontenrahmen, Geschäftspartner und KI-Modelle steuern die automatische Kontierung.</p>
     <nav class="settings-nav" aria-label="Einstellungsbereiche">
       <a href="#firma">Firma</a><a href="#mail">Mail-Eingang</a><a href="#kontenrahmen">Kontenrahmen</a>
-      <a href="#geschaeftspartner">Geschäftspartner</a><a href="#ki">KI</a>
+      <a href="#geschaeftspartner">Geschäftspartner</a><a href="#pruefung">Prüfung</a><a href="#ki">KI</a>
     </nav>
   </aside>
   <div>
@@ -164,6 +165,31 @@ const ki = await api.kiEinstellungen(sitzung.accessToken);
           <textarea name="json" rows="16" spellcheck="false">{geschaeftspartner.json}</textarea>
         </label>
         <button class="btn btn-primary" type="submit">Geschäftspartner speichern</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="karte" id="pruefung">
+    <h3>Prüfung</h3>
+    <div class="inhalt">
+      <p class="sub" style="max-width:60ch">
+        Ab welcher Sicherheit der KI ein Beleg ohne menschliche Prüfung gebucht wird. Belege mit
+        einem Mangel — fehlende Pflichtangaben, Rechenprobe daneben, Anlagevermögen über der
+        GWG-Grenze — gehen unabhängig davon immer zur Prüfung.
+      </p>
+      <form method="post" action="/einstellungen/pruefung" class="formular">
+        <label class="feld">
+          <span>Freigabeschwelle (Prozent)</span>
+          <input type="number" name="freigabeschwelle" min="0" max="100" step="1" required
+                 value={Math.round(pruefung.freigabeschwelle * 100)} />
+        </label>
+        <p class="feld klein" style="align-self:end;margin:0">
+          100 % heißt: nichts läuft automatisch durch. Aktuell werden Belege ab
+          {' ' + Math.round(pruefung.freigabeschwelle * 100)} % Sicherheit gebucht;
+          Mailbenachrichtigung bei offenen Vorgängen ist
+          {pruefung.benachrichtigungAktiv ? ' eingeschaltet' : ' ausgeschaltet'}.
+        </p>
+        <button class="btn btn-primary" type="submit">Freigabeschwelle speichern</button>
       </form>
     </div>
   </div>

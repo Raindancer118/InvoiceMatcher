@@ -46,6 +46,7 @@ test('Prüftisch: geschützte Seiten, Originale und vollständige Formularwege',
       gesperrtBis: '2026-09-09T12:30:00Z', nutzungen: 4, erfolge: 3, fehler: 1, kontingenttreffer: 1,
       zuverlaessigkeit: 0.6, probe: null },
   ];
+  const pruefung = { freigabeschwelle: 0.85, benachrichtigungAktiv: false };
   const calls = [];
   const backend = createServer(async (req, res) => {
     const chunks = [];
@@ -57,6 +58,11 @@ test('Prüftisch: geschützte Seiten, Originale und vollständige Formularwege',
     if (path === '/api/v1/belege' && body.includes('defekt.xml')) {
       res.statusCode = 422;
       res.end(JSON.stringify({ detail: 'Ungültige XML-Struktur in Zeile 2, Spalte 5: End-Tag fehlt' }));
+      return;
+    }
+    if (path === '/api/v1/einstellungen/pruefung') {
+      if (req.method === 'PUT') pruefung.freigabeschwelle = JSON.parse(body).freigabeschwelle;
+      res.end(JSON.stringify(pruefung));
       return;
     }
     if (path === '/api/v1/einstellungen/ki/schluessel') { res.end(JSON.stringify(schluessel)); return; }
@@ -157,6 +163,24 @@ test('Prüftisch: geschützte Seiten, Originale und vollständige Formularwege',
     vorgang.gedanken = gedanken;
     assert.ok(!html.includes('gedankenlade'));
     assert.match(html, /Prüfbare Position/);
+  });
+
+  await t.test('Die Freigabeschwelle lässt sich in den Einstellungen setzen', async () => {
+    const html = await (await get('/einstellungen')).text();
+    assert.ok(html.includes('id="pruefung"'), 'Abschnitt');
+    assert.ok(html.includes('name="freigabeschwelle"'), 'Feld');
+    assert.ok(html.includes('value="85"'), 'aktueller Wert in Prozent');
+
+    const gespeichert = await post('/einstellungen/pruefung', { freigabeschwelle: '70' });
+    assert.equal(gespeichert.status, 302);
+    assert.equal(JSON.parse(calls.findLast((c) => c.path === '/api/v1/einstellungen/pruefung'
+      && c.method === 'PUT').body).freigabeschwelle, 0.7);
+
+    // Unsinnige Eingaben gehen gar nicht erst an die API.
+    const vorher = calls.length;
+    const abgelehnt = await post('/einstellungen/pruefung', { freigabeschwelle: '250' });
+    assert.match(decodeURIComponent(abgelehnt.headers.get('location')), /zwischen 0 und 100/);
+    assert.equal(calls.length, vorher);
   });
 
   await t.test('Ein Beleg in Arbeit ist als solcher erkennbar und nicht entscheidbar', async () => {

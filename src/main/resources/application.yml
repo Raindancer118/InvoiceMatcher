@@ -111,7 +111,8 @@ invoicematcher:
       - { vat-rate: 19, account: 3400, automatic: true }
       - { vat-rate: 7,  account: 3300, automatic: true }
 
-    # Warengruppen. Bei mehreren Treffern gewinnt das laengste Stichwort.
+    # Warengruppen. Die Stichwoerter gehen als Kontext an die KI; passt keines, greift
+    # default-expense nach Steuersatz.
     categories:
       - label: "Furniere/Kanten"
         account: 3401

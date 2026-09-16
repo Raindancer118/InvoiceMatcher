@@ -117,7 +117,7 @@ public final class Kontierung {
         // im Betrieb, nur ohne Warten auf einen Hintergrundfaden.
         ReviewService review = new ReviewService(standardClassificationService(),
                 new InMemoryReviewRepository(),
-                new ReviewProperties(new java.math.BigDecimal("0.85"), null),
+                () -> new ReviewProperties(new java.math.BigDecimal("0.85"), null),
                 reviewCase -> { },
                 documents, Runnable::run);
         return new Workflow(review, new DatevExportService(review, documents,
@@ -151,7 +151,7 @@ public final class Kontierung {
         ReviewRepository repository = new SqliteReviewRepository(jdbc, serializer);
         DocumentStore documents = new SqliteDocumentStore(jdbc);
         ReviewService review = new ReviewService(standardClassificationService(), repository,
-                new ReviewProperties(new java.math.BigDecimal("0.85"), null), reviewCase -> { },
+                () -> new ReviewProperties(new java.math.BigDecimal("0.85"), null), reviewCase -> { },
                 documents, Runnable::run);
         DatevExportService export = new DatevExportService(review, documents,
                 standardDocumentXmlWriter(), standardLedgerXmlWriter());

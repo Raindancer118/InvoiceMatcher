@@ -1,6 +1,18 @@
 # Progress
 
 ## Umgesetzt
+- [x] **Freigabeschwelle in den Einstellungen** (0.12.0): der Wert, ab dem ein Beleg ohne
+      menschliche Pruefung gebucht wird, stand nur in der `application.yml` und brauchte einen
+      Neustart. Jetzt eigene Ablage (`review_settings`), `ReviewSettingsService` als
+      Supplier - `ReviewService` liest ihn bei jedem Beleg frisch - sowie
+      `GET/PUT /api/v1/einstellungen/pruefung` und ein Formular unter `/einstellungen#pruefung`
+      (in Prozent, mit Bereichspruefung auf beiden Seiten). Die Mailbenachrichtigung bleibt
+      bewusst umgebungsgesteuert: ueber sie entscheidet beim Start, ob es einen Mail-Versender
+      ueberhaupt gibt.
+      Ausserdem: die Rechenprobe-Toleranz stand als feste Zahl im Prompt, obwohl
+      `roundingTolerance` im Kontenrahmen einstellbar ist - der Prompt verweist jetzt auf das
+      Feld statt auf "0,01 EUR", und der veraltete Kommentar zur laengsten Stichwortregel
+      (Ueberbleibsel der entfernten Regel-Engine) ist raus.
 - [x] **Einreichen wartet nicht mehr auf die KI** (0.11.0): `submit` liest den Beleg, legt ihn ab
       und meldet ihn als `IN_ARBEIT` zurueck; die Kontierung laeuft in einem eigenen, schmalen
       Faden-Pool hinterher (`ReviewConfiguration`, zwei Faeden - mehr liefe nur schneller in die

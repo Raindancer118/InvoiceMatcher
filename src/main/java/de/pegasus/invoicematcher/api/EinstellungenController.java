@@ -12,6 +12,8 @@ import de.pegasus.invoicematcher.api.dto.KontenrahmenRequest;
 import de.pegasus.invoicematcher.api.dto.KontenrahmenResponse;
 import de.pegasus.invoicematcher.api.dto.MailEingangRequest;
 import de.pegasus.invoicematcher.api.dto.MailEingangResponse;
+import de.pegasus.invoicematcher.api.dto.PruefungRequest;
+import de.pegasus.invoicematcher.api.dto.PruefungResponse;
 import de.pegasus.invoicematcher.classification.ai.AiConnectionTester;
 import de.pegasus.invoicematcher.classification.ai.AiKeyStatus;
 import de.pegasus.invoicematcher.classification.ai.AiKeyStatusService;
@@ -20,6 +22,7 @@ import de.pegasus.invoicematcher.config.AiSettingsService;
 import de.pegasus.invoicematcher.config.CompanySettingsService;
 import de.pegasus.invoicematcher.config.MailIntakeSettingsService;
 import de.pegasus.invoicematcher.config.PartnerSettingsService;
+import de.pegasus.invoicematcher.config.ReviewSettingsService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -45,11 +48,12 @@ public class EinstellungenController {
     private final AiSettingsService ai;
     private final AiConnectionTester connectionTester;
     private final AiKeyStatusService keyStatus;
+    private final ReviewSettingsService review;
 
     public EinstellungenController(CompanySettingsService company, MailIntakeSettingsService mail,
                                    AccountingSettingsService accounting, PartnerSettingsService partners,
                                    AiSettingsService ai, AiConnectionTester connectionTester,
-                                   AiKeyStatusService keyStatus) {
+                                   AiKeyStatusService keyStatus, ReviewSettingsService review) {
         this.company = company;
         this.mail = mail;
         this.accounting = accounting;
@@ -57,6 +61,7 @@ public class EinstellungenController {
         this.ai = ai;
         this.connectionTester = connectionTester;
         this.keyStatus = keyStatus;
+        this.review = review;
     }
 
     @GetMapping("/firma")
@@ -98,6 +103,17 @@ public class EinstellungenController {
     public GeschaeftspartnerResponse geschaeftspartnerSpeichern(
             @Valid @RequestBody GeschaeftspartnerRequest request) {
         return GeschaeftspartnerResponse.of(partners.update(request.toPartnerProperties()));
+    }
+
+    /** Die Schwelle, ab der ein Beleg ohne menschliche Pruefung durchlaeuft. */
+    @GetMapping("/pruefung")
+    public PruefungResponse pruefung() {
+        return PruefungResponse.of(review.current());
+    }
+
+    @PutMapping("/pruefung")
+    public PruefungResponse pruefungSpeichern(@Valid @RequestBody PruefungRequest request) {
+        return PruefungResponse.of(review.update(request.freigabeschwelle()));
     }
 
     @GetMapping("/ki")
