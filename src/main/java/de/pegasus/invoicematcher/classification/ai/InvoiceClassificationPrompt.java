@@ -75,10 +75,13 @@ public final class InvoiceClassificationPrompt {
                einer Buchungszeile zusammenfassen (Nettobetraege addieren).
 
             steuerschluessel: null bei automatischen Konten (automatic=true im Kontenrahmen), sonst
-            8 fuer 7 Prozent und 9 fuer 19 Prozent. soll_haben_kennzeichen: "S" bei Eingangsrechnungen (Aufwand),
-            "H" bei Ausgangsrechnungen (Erloes). Eigenes Unternehmen (siehe company-JSON unten):
-            ist der Aussteller das eigene Unternehmen, ist es eine Ausgangsrechnung, sonst eine
-            Eingangsrechnung.
+            8 fuer 7 Prozent und 9 fuer 19 Prozent. soll_haben_kennzeichen: bei einer Rechnung "S" bei
+            Eingangsrechnungen (Aufwand), "H" bei Ausgangsrechnungen (Erloes) - bei einer Gutschrift
+            genau umgekehrt, weil sie die Buchung der zugehoerigen Rechnung mindert statt sie
+            fortzusetzen: "H" bei einer Eingangsgutschrift (mindert den Aufwand), "S" bei einer
+            Ausgangsgutschrift (mindert den Erloes). Eigenes Unternehmen (siehe company-JSON unten):
+            ist der Aussteller das eigene Unternehmen, ist es eine Ausgangsrechnung/-gutschrift, sonst
+            eine Eingangsrechnung/-gutschrift.
             """;
 
     private InvoiceClassificationPrompt() {
