@@ -16,6 +16,28 @@ const stufen = [
 ];
 const uhrzeit = (iso: string | null) =>
   iso ? new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(iso)) : '—';
+
+/**
+ * Das Kontingent, wie es die letzte Pruefung ergeben hat. Der Server merkt sich das Ergebnis,
+ * damit ein Seitenaufruf nicht den Stand verwirft - eine Pruefung kostet Kontingent und soll
+ * nicht noetig sein, nur um noch einmal hinzusehen.
+ */
+const kontingenttext = (zeile: SchluesselStatus): string => {
+  if (!zeile.probe) return 'Noch nicht geprüft';
+  const teile: string[] = [];
+  if (zeile.probe.restAnfragen !== null) teile.push(zeile.probe.restAnfragen + ' Anfragen frei');
+  if (zeile.probe.restToken !== null) teile.push(zeile.probe.restToken.toLocaleString('de-DE') + ' Token frei');
+  if (!zeile.probe.ok && zeile.probe.kontingentZurueckAb) {
+    teile.push('wieder ab ' + uhrzeit(zeile.probe.kontingentZurueckAb));
+  }
+  return teile.length > 0 ? teile.join(' · ') : 'Der Anbieter meldet kein Restkontingent zurück.';
+};
+
+const zuletztGeprueft = schluessel
+  .map((zeile) => zeile.probe?.geprueftAm)
+  .filter((wert): wert is string => Boolean(wert))
+  .sort()
+  .at(-1) ?? null;
 ---
 <Grundgeruest titel="KI-Schlüssel" benutzer={sitzung.benutzer.name} aktiv="schluessel">
   <h1>KI-Schlüssel</h1>
@@ -30,7 +52,9 @@ const uhrzeit = (iso: string | null) =>
 
   <p class="schluessel-leiste">
     <button class="btn" type="button" id="pruefen-button">Alle Schlüssel live prüfen</button>
-    <span class="klein" id="pruefen-status" role="status"></span>
+    <span class="klein" id="pruefen-status" role="status">
+      {zuletztGeprueft ? 'Zuletzt geprüft um ' + uhrzeit(zuletztGeprueft) : ''}
+    </span>
   </p>
 
   {schluessel.length === 0 && !ladefehler && (
@@ -60,14 +84,20 @@ const uhrzeit = (iso: string | null) =>
                   <td class="konto">{zeile.position}</td>
                   <td class="konto">{zeile.schluessel}</td>
                   <td class="zelle-zustand">
-                    <span class={'zustand ' + (zeile.verfuegbar ? 'z-frei' : 'z-offen')}>
-                      {zeile.verfuegbar ? 'Bereit' : 'Gesperrt bis ' + uhrzeit(zeile.gesperrtBis)}
-                    </span>
+                    {zeile.probe ? (
+                      <span class={'zustand ' + (zeile.probe.ok ? 'z-frei' : 'z-abg')}>
+                        {zeile.probe.ok ? 'Erreichbar · ' + zeile.probe.dauerMs + ' ms' : zeile.probe.meldung}
+                      </span>
+                    ) : (
+                      <span class={'zustand ' + (zeile.verfuegbar ? 'z-frei' : 'z-offen')}>
+                        {zeile.verfuegbar ? 'Bereit' : 'Gesperrt bis ' + uhrzeit(zeile.gesperrtBis)}
+                      </span>
+                    )}
                   </td>
                   <td class="r num">{zeile.nutzungen}</td>
                   <td class="r num">{zeile.fehler}</td>
                   <td class="r num">{zeile.kontingenttreffer}</td>
-                  <td class="zelle-kontingent klein">Noch nicht geprüft</td>
+                  <td class="zelle-kontingent klein">{kontingenttext(zeile)}</td>
                 </tr>
               ))}
             </tbody>

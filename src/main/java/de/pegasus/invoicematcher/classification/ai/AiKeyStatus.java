@@ -31,13 +31,17 @@ public record AiKeyStatus(@JsonProperty("stufe") String stufe,
     /**
      * Das Ergebnis einer Lebendpruefung. {@code restAnfragen}/{@code restToken} bleiben bei
      * Gemini {@code null} - der Anbieter meldet keine Restkontingente zurueck.
+     *
+     * <p>{@code geprueftAm} gehoert dazu, weil das Ergebnis den Seitenaufruf ueberdauert: ohne
+     * den Zeitpunkt waere nicht erkennbar, ob die Zahlen von eben oder von vorgestern sind.
      */
     public record Probe(@JsonProperty("ok") boolean ok,
                         @JsonProperty("meldung") String meldung,
                         @JsonProperty("dauerMs") long dauerMs,
                         @JsonProperty("restAnfragen") Integer restAnfragen,
                         @JsonProperty("restToken") Integer restToken,
-                        @JsonProperty("kontingentZurueckAb") Instant kontingentZurueckAb) {
+                        @JsonProperty("kontingentZurueckAb") Instant kontingentZurueckAb,
+                        @JsonProperty("geprueftAm") Instant geprueftAm) {
     }
 
     /**

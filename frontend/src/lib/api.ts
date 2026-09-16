@@ -90,6 +90,8 @@ export interface SchluesselStatus {
     restAnfragen: number | null;
     restToken: number | null;
     kontingentZurueckAb: string | null;
+    /** Wann diese Pruefung lief - der Server merkt sie sich ueber den Seitenaufruf hinaus. */
+    geprueftAm: string;
   } | null;
 }
 

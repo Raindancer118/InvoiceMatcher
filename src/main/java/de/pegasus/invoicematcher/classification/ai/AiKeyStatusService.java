@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -19,6 +20,11 @@ import java.util.stream.Collectors;
  * zusaetzlich jeden Schluessel einzeln beim Anbieter an - das kostet bei Groq ein paar Token pro
  * Schluessel und beantwortet dafuer die Frage, wie viel Kontingent wirklich noch da ist und wann
  * es zurueckkommt. Deshalb laeuft es nur auf ausdrueckliche Anforderung, nie nebenbei.
+ *
+ * <p>Das Ergebnis einer Pruefung bleibt gemerkt und kommt bei {@link #status()} wieder mit -
+ * sonst waere es mit dem naechsten Seitenaufruf weg, und man muesste eine kontingentkostende
+ * Anfrage wiederholen, nur um noch einmal hinzuschauen. Gemerkt wird im Arbeitsspeicher: nach
+ * einem Neustart steht dort ehrlich "noch nicht geprueft" statt einer veralteten Zahl.
  */
 @Service
 public class AiKeyStatusService {
@@ -26,6 +32,9 @@ public class AiKeyStatusService {
     private final Supplier<AiProperties> settings;
     private final AiKeyPool pool;
     private final AiKeyProbe probe;
+
+    /** Letztes Pruefergebnis je Schluessel - Schluessel als Schluessel, nie nach aussen gereicht. */
+    private final Map<String, AiKeyStatus.Probe> letzteProben = new ConcurrentHashMap<>();
 
     public AiKeyStatusService(Supplier<AiProperties> settings, AiKeyPool pool, AiKeyProbe probe) {
         this.settings = settings;
@@ -69,7 +78,7 @@ public class AiKeyStatusService {
                     zustand == null ? 0 : zustand.errors(),
                     zustand == null ? 0 : zustand.rateLimitHits(),
                     zustand == null ? 1.0 : zustand.confidence(),
-                    mitProbe ? pruefe(stufe, tier.model(), key) : null));
+                    mitProbe ? pruefeUndMerke(stufe, tier.model(), key) : letzteProben.get(key)));
         }
         return zeilen;
     }
@@ -80,11 +89,14 @@ public class AiKeyStatusService {
         return gesperrtBis == null || gesperrtBis.isBefore(Instant.now()) ? null : gesperrtBis;
     }
 
-    private AiKeyStatus.Probe pruefe(AiKeyPool.Stufe stufe, String model, String apiKey) {
+    private AiKeyStatus.Probe pruefeUndMerke(AiKeyPool.Stufe stufe, String model, String apiKey) {
         AiKeyProbe.Ergebnis ergebnis = stufe == AiKeyPool.Stufe.FAST
                 ? probe.groq(model, apiKey)
                 : probe.gemini(apiKey);
-        return new AiKeyStatus.Probe(ergebnis.ok(), ergebnis.meldung(), ergebnis.dauerMs(),
-                ergebnis.restAnfragen(), ergebnis.restToken(), ergebnis.kontingentZurueckAb());
+        AiKeyStatus.Probe gemerkt = new AiKeyStatus.Probe(ergebnis.ok(), ergebnis.meldung(),
+                ergebnis.dauerMs(), ergebnis.restAnfragen(), ergebnis.restToken(),
+                ergebnis.kontingentZurueckAb(), Instant.now());
+        letzteProben.put(apiKey, gemerkt);
+        return gemerkt;
     }
 }

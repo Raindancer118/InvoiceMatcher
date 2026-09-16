@@ -65,7 +65,8 @@ test('Prüftisch: geschützte Seiten, Originale und vollständige Formularwege',
         ok: eintrag.stufe === 'fast', meldung: eintrag.stufe === 'fast' ? 'Erreichbar' : 'Kontingent erschoepft',
         dauerMs: 120, restAnfragen: eintrag.stufe === 'fast' ? 941 : null,
         restToken: eintrag.stufe === 'fast' ? 17532 : null,
-        kontingentZurueckAb: eintrag.stufe === 'fast' ? null : '2026-09-09T12:30:00Z' } }))));
+        kontingentZurueckAb: eintrag.stufe === 'fast' ? null : '2026-09-09T12:30:00Z',
+        geprueftAm: '2026-09-09T12:00:00Z' } }))));
       return;
     }
     if (path.endsWith('/beleg')) { res.setHeader('Content-Type', 'application/xml'); res.end('<Invoice><Note>&lt;script&gt;</Note></Invoice>'); }
@@ -164,6 +165,21 @@ test('Prüftisch: geschützte Seiten, Originale und vollständige Formularwege',
       'Schnelle Stufe', 'Starke Stufe', 'Alle Schlüssel live prüfen']) {
       assert.ok(html.includes(text), text);
     }
+  });
+
+  await t.test('Ein gemerktes Prüfergebnis überlebt den Seitenaufruf', async () => {
+    const ohne = await (await get('/schluessel')).text();
+    assert.ok(ohne.includes('Noch nicht geprüft'), 'ohne Prüfung');
+
+    schluessel[0].probe = { ok: true, meldung: 'Erreichbar', dauerMs: 120, restAnfragen: 941,
+      restToken: 17532, kontingentZurueckAb: null, geprueftAm: '2026-09-09T12:00:00Z' };
+    const html = await (await get('/schluessel')).text();
+    schluessel[0].probe = null;
+
+    assert.ok(html.includes('941 Anfragen frei'), 'Restanfragen');
+    assert.ok(html.includes('17.532 Token frei'), 'Resttoken');
+    assert.ok(html.includes('Zuletzt geprüft um'), 'Zeitpunkt');
+    assert.ok(html.includes('Erreichbar · 120 ms'), 'Zustand aus der Prüfung');
   });
 
   await t.test('Die Live-Prüfung läuft nur per POST und meldet Restkontingent zurück', async () => {

@@ -13,7 +13,7 @@ class AiKeyStatusServiceTest {
 
     private static final String GROQ_OK = "{\"choices\":[{\"message\":{\"content\":\"OK\"}}]}";
 
-    private final AiProperties properties = new AiProperties(
+    private AiProperties properties = new AiProperties(
             new AiProperties.Tier("openai/gpt-oss-120b", List.of("gsk_erster_schluessel_a1b2", "gsk_zweiter_c3d4")),
             new AiProperties.Tier("gemini-flash-latest", List.of("AIzaSyGeheimGeheim9876")));
 
@@ -66,6 +66,47 @@ class AiKeyStatusServiceTest {
         assertThat(status.get(1).probe().kontingentZurueckAb()).isNotNull();
         assertThat(status.get(2).probe().ok()).isTrue();
         assertThat(status.get(2).probe().restAnfragen()).isNull();
+    }
+
+    /**
+     * Eine Pruefung kostet Kontingent - ihr Ergebnis darf deshalb nicht mit dem naechsten
+     * Seitenaufruf verloren gehen, sonst muesste man sie nur zum Nachschauen wiederholen.
+     */
+    @Test
+    void keepsTheLastProbeResultForLaterPageLoads() {
+        AiKeyStatusService service = service(new FakeHttpTransport()
+                .queue(200, GROQ_OK, Map.of("x-ratelimit-remaining-requests", "998"))
+                .queue(200, GROQ_OK, Map.of("x-ratelimit-remaining-requests", "997"))
+                .queue(200, "{\"models\":[]}"));
+
+        service.pruefe();
+        List<AiKeyStatus> spaeter = service.status();
+
+        assertThat(spaeter.get(0).probe()).isNotNull();
+        assertThat(spaeter.get(0).probe().restAnfragen()).isEqualTo(998);
+        assertThat(spaeter.get(0).probe().geprueftAm()).isNotNull();
+        assertThat(spaeter.get(2).probe().ok()).isTrue();
+    }
+
+    /** Ein neuer Schluessel hat noch keine Pruefung - und erbt auch keine fremde. */
+    @Test
+    void doesNotCarryAProbeOverToAnUncheckedKey() {
+        AiKeyStatusService service = service(new FakeHttpTransport()
+                .queue(200, GROQ_OK, Map.of("x-ratelimit-remaining-requests", "998"))
+                .queue(429, "{}", Map.of("retry-after", "30"))
+                .queue(200, "{\"models\":[]}"));
+        service.pruefe();
+
+        properties = new AiProperties(
+                new AiProperties.Tier("openai/gpt-oss-120b",
+                        List.of("gsk_erster_schluessel_a1b2", "gsk_ganz_neuer_e5f6")),
+                new AiProperties.Tier("gemini-flash-latest", List.of("AIzaSyGeheimGeheim9876")));
+
+        List<AiKeyStatus> status = service.status();
+
+        assertThat(status.get(0).probe()).isNotNull();
+        assertThat(status.get(1).schluessel()).isEqualTo("gsk_…e5f6");
+        assertThat(status.get(1).probe()).isNull();
     }
 
     @Test

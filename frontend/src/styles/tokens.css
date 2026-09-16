@@ -150,8 +150,12 @@ p { overflow-wrap:anywhere; }
 /* Die Gedanken der KI liegen als Lade am rechten Rand des Prueftischs: der Buchungssatz bleibt
    sichtbar, die Herleitung kommt nur davor, wenn der Pruefer sie anfordert. Reines <details>,
    ohne Skript - die Seite rendert serverseitig und soll auch so bedienbar bleiben. */
-.gedankenlade { position:fixed; top:72px; right:0; bottom:0; z-index:6; display:flex; align-items:flex-start; }
-.gedankenlade > summary { list-style:none; cursor:pointer; flex:none; margin-top:2rem; padding:1.1rem .6rem;
+/* Die Lade spannt sich ueber die volle Hoehe; der Inhalt bekommt seine Hoehe deshalb ueber
+   das Strecken der Flex-Zeile (align-items: stretch) und nicht ueber eine Prozentangabe -
+   eine Prozenthoehe loest hier nicht auf, die Lade waechst dann mit ihrem Text aus dem Bild
+   heraus und laesst sich nicht mehr scrollen. */
+.gedankenlade { position:fixed; top:72px; right:0; bottom:0; z-index:6; display:flex; }
+.gedankenlade > summary { list-style:none; cursor:pointer; flex:none; align-self:flex-start; margin-top:2rem; padding:1.1rem .6rem;
   background:var(--archive); color:#fffef9; border:1px solid var(--archive); border-right:0;
   writing-mode:vertical-rl; text-orientation:mixed; font:600 .8rem/1 var(--font-body); letter-spacing:.04em; }
 .gedankenlade > summary::-webkit-details-marker { display:none; }
@@ -159,7 +163,8 @@ p { overflow-wrap:anywhere; }
 .gedankenlade[open] > summary { background:var(--approve); color:var(--text); border-color:var(--border-strong); }
 .gedankenlade[open] > summary::before { content:"◂ "; }
 .gedankenlade > summary:hover { background:var(--btn-hover); color:#fffef9; }
-.lade-inhalt { width:min(430px,92vw); height:100%; overflow-y:auto; padding:1.5rem;
+.lade-inhalt { flex:none; width:min(430px,92vw); min-height:0; max-height:100%; overflow-y:auto;
+  overscroll-behavior:contain; padding:1.5rem;
   background:var(--surface-card); border-left:1px solid var(--border-strong); box-shadow:var(--shadow-bar);
   font-size:.88rem; line-height:1.65; }
 .lade-inhalt > h3 { font-size:1rem; text-transform:uppercase; letter-spacing:.06em; margin-bottom:1rem; }
@@ -229,7 +234,8 @@ p { overflow-wrap:anywhere; }
   .belegbild .pdf,.xml-original,.belegbild .flaeche { flex:none; height:70vh; }
   /* Gestapelte Spalten scrollen die ganze Seite - die Lade bleibt trotzdem am Fensterrand. */
   .gedankenlade { top:auto; bottom:0; height:min(80dvh,640px); align-items:flex-end; }
-  .gedankenlade > summary { margin:0 0 2rem; }
+  .gedankenlade > summary { align-self:flex-end; margin:0 0 2rem; }
+  .gedankenlade .lade-inhalt { height:100%; }
 }
 @media(max-width:650px) {
   .wrap { padding:1rem; } .wrap.breit { padding:0; } .workbench { grid-template-columns:1fr; }
