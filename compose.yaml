@@ -16,6 +16,15 @@ services:
       # betriebsspezifische Werte werden hier ueberschrieben.
       INVOICEMATCHER_COMPANY_NAME: "${COMPANY_NAME:-Muster zu Testzwecken GmbH}"
       INVOICEMATCHER_REVIEW_NOTIFICATION_ENABLED: "${REVIEW_MAIL_ENABLED:-false}"
+      # KI-Schluessel-Pools, kommagetrennt (GROQ_API_KEY_1..4 bzw. GOOGLE_API_KEY_1..4 im
+      # Projektvault). ACHTUNG: wirkt nur beim allerersten Start einer frischen Ablage - danach
+      # ist die Einstellungen-Oberflaeche massgeblich (SettingsSeeder fasst eine befuellte
+      # Tabelle nicht mehr an). Bei einer laufenden Instanz gehoeren neue Schluessel unter
+      # /einstellungen#ki eingetragen, nicht hierher.
+      INVOICEMATCHER_AI_FAST_API_KEYS: "${AI_FAST_API_KEYS:-}"
+      INVOICEMATCHER_AI_SMART_API_KEYS: "${AI_SMART_API_KEYS:-}"
+      INVOICEMATCHER_AI_FAST_MODEL: "${AI_FAST_MODEL:-openai/gpt-oss-120b}"
+      INVOICEMATCHER_AI_SMART_MODEL: "${AI_SMART_MODEL:-gemini-flash-latest}"
       # Ohne Herausgeber laeuft die API ohne Anmeldung - im Verbund also immer setzen.
       INVOICEMATCHER_OIDC_ISSUER: "${OIDC_ISSUER:-}"
       INVOICEMATCHER_OIDC_GROUP: "${REQUIRED_GROUP:-InvoiceMatcher}"
