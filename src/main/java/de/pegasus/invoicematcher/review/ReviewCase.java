@@ -32,6 +32,12 @@ public record ReviewCase(String id,
         return new ReviewCase(id, report, status, at, status.isDecided() ? at : null, null, null, null);
     }
 
+    /** Die Klassifikation ist durch: Bericht und Zustand treten an die Stelle des Platzhalters. */
+    public ReviewCase classified(ClassificationReport newReport, ReviewStatus newStatus, Instant at) {
+        return new ReviewCase(id, newReport, newStatus, submittedAt,
+                newStatus.isDecided() ? at : null, decidedBy, decisionNote, exportedAt);
+    }
+
     public ReviewCase decided(ReviewStatus newStatus, ClassificationReport newReport,
                               String by, String note, Instant at) {
         return new ReviewCase(id, newReport, newStatus, submittedAt, at, by, note, exportedAt);

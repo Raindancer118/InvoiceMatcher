@@ -1,6 +1,14 @@
 # Progress
 
 ## Umgesetzt
+- [x] **Einreichen wartet nicht mehr auf die KI** (0.11.0): `submit` liest den Beleg, legt ihn ab
+      und meldet ihn als `IN_ARBEIT` zurueck; die Kontierung laeuft in einem eigenen, schmalen
+      Faden-Pool hinterher (`ReviewConfiguration`, zwei Faeden - mehr liefe nur schneller in die
+      Kontingentgrenzen). Unlesbare Dateien werden weiterhin sofort mit 422 abgewiesen, weil die
+      Extraktion synchron bleibt. Scheitert die Kontierung im Hintergrund, bleibt der Beleg als
+      offener Pruefvorgang mit Hinweis liegen - verworfen wird er nie. Die Oberflaeche zeigt den
+      Zustand "In Arbeit" (eigener Filter in der Pruefliste) und holt sich den Stand selbst nach,
+      solange etwas laeuft.
 - [x] **Einreich-Ablage faehrt von oben herein** (0.10.0): der Knopf "+ Beleg einreichen" im Kopf
       oeffnet jetzt auf jeder Seite eine Lade, die von oben ins Bild faehrt und Belege per Klick
       auf die Flaeche oder per Ziehen annimmt - vorher sprang er auf die Startseite. Natives

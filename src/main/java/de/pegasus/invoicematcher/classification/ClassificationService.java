@@ -76,8 +76,23 @@ public class ClassificationService {
         this.pageRenderer = new PdfPageRenderer(SCAN_DPI, MAX_SCAN_PAGES);
     }
 
+    /**
+     * Nur lesen, nicht kontieren - fuer die Annahme, die sofort wissen muss, ob der Beleg
+     * ueberhaupt verwertbar ist, ohne auf die KI zu warten (siehe {@code ReviewService#submit}).
+     *
+     * @throws de.pegasus.invoicematcher.extraction.DocumentExtractionException wenn kein
+     *         Extraktor mit dem Beleg etwas anfangen kann
+     */
+    public ExtractedInvoice extract(SourceDocument document) {
+        return extraction.extract(document);
+    }
+
     public ClassificationReport classify(SourceDocument document) {
-        ExtractedInvoice invoice = extraction.extract(document);
+        return classify(document, extract(document));
+    }
+
+    /** Dieselbe Kontierung mit bereits gelesenem Beleg - die Extraktion laeuft so nur einmal. */
+    public ClassificationReport classify(SourceDocument document, ExtractedInvoice invoice) {
         List<BufferedImage> pages = invoice.sourceFormat().isRecognized() ? renderPages(document) : List.of();
         PartnerProperties currentPartners = partners.get();
         ChatRequest request = InvoiceClassificationPrompt.build(invoice, company.get(), accounting.get(),

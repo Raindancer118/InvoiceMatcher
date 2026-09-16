@@ -7,7 +7,7 @@ interface Props { alle: Vorgang[]; vorgang?: Vorgang; filter?: string }
 const { alle, vorgang, filter = 'alle' } = Astro.props;
 const { sitzung } = Astro.locals;
 const id = vorgang?.id;
-const filterwerte = [['alle', 'Alle'], ['offen', 'Offen'], ['freigegeben', 'Freigegeben'], ['uebergeben', 'Übergeben'], ['abgelehnt', 'Abgelehnt']];
+const filterwerte = [['alle', 'Alle'], ['inarbeit', 'In Arbeit'], ['offen', 'Offen'], ['freigegeben', 'Freigegeben'], ['uebergeben', 'Übergeben'], ['abgelehnt', 'Abgelehnt']];
 const warteschlange = filter === 'alle' ? alle : alle.filter((v) => anzeigezustand(v) === filter);
 const meldung = Astro.url.searchParams.get('meldung');
 const zustand = vorgang ? anzeigezustand(vorgang) : null;
@@ -78,6 +78,17 @@ if (quelle?.format === 'XRECHNUNG' && id) {
 
 
       </header>
+      {zustand === 'inarbeit' && (
+        <div class="karte">
+          <h3>Der Beleg liegt in Arbeit</h3>
+          <div class="inhalt">
+            <p style="margin:0">
+              Der Beleg ist angenommen und abgelegt — die Kontierung durch die KI läuft gerade.
+              Die Seite aktualisiert sich von selbst, sobald das Ergebnis da ist.
+            </p>
+          </div>
+        </div>
+      )}
       {vorgang.hinweise.length > 0 && (
         <div class="karte">
           <h3>Warum dieser Vorgang hier liegt</h3>

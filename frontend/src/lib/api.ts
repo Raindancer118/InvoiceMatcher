@@ -7,7 +7,7 @@
  */
 import { config } from './config';
 
-export type Zustand = 'OFFEN' | 'FREIGEGEBEN' | 'ABGELEHNT' | 'AUTOMATISCH_FREIGEGEBEN';
+export type Zustand = 'IN_ARBEIT' | 'OFFEN' | 'FREIGEGEBEN' | 'ABGELEHNT' | 'AUTOMATISCH_FREIGEGEBEN';
 
 export interface Buchungszeile {
   sachkonto: number;

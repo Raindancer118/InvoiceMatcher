@@ -2,6 +2,7 @@ package de.pegasus.invoicematcher.classification;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import de.pegasus.invoicematcher.domain.ClassificationResult;
+import de.pegasus.invoicematcher.domain.DocumentType;
 import de.pegasus.invoicematcher.domain.Finding;
 import de.pegasus.invoicematcher.domain.SourceFormat;
 
@@ -24,6 +25,22 @@ public record ClassificationReport(@JsonProperty("dateiname") String filename,
                                    @JsonProperty("ergebnis") ClassificationResult result,
                                    @JsonProperty("hinweise") List<Finding> findings,
                                    @JsonProperty("gedanken") ClassificationRationale gedanken) {
+
+    /**
+     * Der Bericht eines gerade erst angenommenen Belegs: Dateiname und sonst nichts.
+     *
+     * <p>Es gibt ihn, damit ein Vorgang nie ohne Bericht existiert - die Pruefliste, die Ablage
+     * und der Export verlassen sich darauf. Sobald die Klassifikation durch ist, ersetzt ihr
+     * Ergebnis diesen Platzhalter vollstaendig.
+     */
+    public static ClassificationReport wirdVerarbeitet(String filename) {
+        return new ClassificationReport(filename,
+                new Source(null, null, null, null, null, null, null, null, null, 0),
+                new ClassificationResult(DocumentType.RECHNUNGSEINGANG_ZUR_PRUEFUNG, null, null, null,
+                        List.of(), null, BigDecimal.ZERO),
+                List.of(Finding.info("annahme", "Beleg angenommen - die Klassifikation laeuft noch")),
+                null);
+    }
 
     /**
      * Die erkannten Rohdaten des Belegs - unabhaengig davon, ob ein Buchungssatz entstand.

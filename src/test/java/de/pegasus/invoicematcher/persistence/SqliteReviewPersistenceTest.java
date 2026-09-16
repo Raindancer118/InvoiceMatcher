@@ -55,7 +55,9 @@ class SqliteReviewPersistenceTest {
     void theStoredResultIsIdenticalDownToEveryBookingLine() {
         ReviewCase submitted;
         try (Kontierung.Persistence persistence = persistence()) {
-            submitted = persistence.review().submit(Belege.document("13_XRechnung_Spanexempel_gemischt.xml"));
+            // Die Annahme antwortet mit dem Platzhalter; verglichen wird der fertige Vorgang.
+            String id = persistence.review().submit(Belege.document("13_XRechnung_Spanexempel_gemischt.xml")).id();
+            submitted = persistence.review().find(id);
         }
 
         try (Kontierung.Persistence reopened = persistence()) {

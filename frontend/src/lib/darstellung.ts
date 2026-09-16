@@ -18,9 +18,10 @@ export const heute = (): string => LANGES_DATUM.format(new Date());
  * sondern ein freigegebener mit Exportvermerk - fuer den Pruefer ist es aber der Unterschied
  * zwischen "muss noch weg" und "ist gebucht".
  */
-export type Anzeigezustand = 'offen' | 'freigegeben' | 'abgelehnt' | 'uebergeben';
+export type Anzeigezustand = 'inarbeit' | 'offen' | 'freigegeben' | 'abgelehnt' | 'uebergeben';
 
 export function anzeigezustand(vorgang: Vorgang): Anzeigezustand {
+  if (vorgang.status === 'IN_ARBEIT') return 'inarbeit';
   if (vorgang.exportiertAm) return 'uebergeben';
   if (vorgang.status === 'ABGELEHNT') return 'abgelehnt';
   if (vorgang.status === 'OFFEN') return 'offen';
@@ -28,6 +29,7 @@ export function anzeigezustand(vorgang: Vorgang): Anzeigezustand {
 }
 
 export const ZUSTAND_TEXT: Record<Anzeigezustand, string> = {
+  inarbeit: 'In Arbeit',
   offen: 'Offen',
   freigegeben: 'Freigegeben',
   abgelehnt: 'Abgelehnt',
@@ -35,6 +37,7 @@ export const ZUSTAND_TEXT: Record<Anzeigezustand, string> = {
 };
 
 export const ZUSTAND_KLASSE: Record<Anzeigezustand, string> = {
+  inarbeit: 'z-arbeit',
   offen: 'z-offen',
   freigegeben: 'z-frei',
   abgelehnt: 'z-abg',
@@ -63,6 +66,7 @@ export function zahlwort(anzahl: number): string {
 }
 
 export const status: Record<Zustand, string> = {
+  IN_ARBEIT: 'In Arbeit',
   OFFEN: 'Offen',
   FREIGEGEBEN: 'Freigegeben',
   ABGELEHNT: 'Abgelehnt',

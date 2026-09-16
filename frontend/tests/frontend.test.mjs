@@ -159,6 +159,20 @@ test('Prüftisch: geschützte Seiten, Originale und vollständige Formularwege',
     assert.match(html, /Prüfbare Position/);
   });
 
+  await t.test('Ein Beleg in Arbeit ist als solcher erkennbar und nicht entscheidbar', async () => {
+    const vorher = vorgang.status;
+    vorgang.status = 'IN_ARBEIT';
+    const html = await (await get('/vorgang/test-beleg')).text();
+    vorgang.status = vorher;
+
+    assert.ok(html.includes('In Arbeit'), 'Zustandstext');
+    assert.ok(html.includes('z-arbeit'), 'Zustandsklasse');
+    assert.ok(html.includes('Der Beleg liegt in Arbeit'), 'Hinweis');
+    assert.ok(!html.includes('value="freigeben"'), 'keine Freigabe möglich');
+    // 'z-arbeit' ist zugleich der Haken, an dem die Seite ihr Nachladen festmacht (Grundgeruest).
+    assert.ok(html.includes('zustand z-arbeit'), 'Haken für das Nachladen');
+  });
+
   await t.test('Die Einreich-Ablage hängt auf jeder Seite im Kopf und nimmt Dateien entgegen', async () => {
     for (const pfad of ['/', '/pruefliste', '/export', '/schluessel']) {
       const html = await (await get(pfad)).text();

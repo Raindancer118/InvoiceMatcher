@@ -61,5 +61,16 @@ const navigation = [
   </main>
 
   {benutzer && <Einreichlade />}
+
+  <script>
+    // Solange ein Beleg noch klassifiziert wird, holt sich die Seite den Stand selbst nach -
+    // sonst muesste man raten, wann das Ergebnis da ist. Die Ablage bleibt dabei unangetastet:
+    // ein Neuladen mitten im Einreichen waere das Gegenteil von hilfreich.
+    if (document.querySelector('.z-arbeit')) {
+      window.setTimeout(() => {
+        if (!document.querySelector('dialog[open]')) window.location.reload();
+      }, 4000);
+    }
+  </script>
 </body>
 </html>

@@ -113,11 +113,13 @@ public final class Kontierung {
 
     public static Workflow standardWorkflow() {
         InMemoryDocumentStore documents = new InMemoryDocumentStore();
+        // Im Test laeuft die Klassifikation sofort im aufrufenden Faden: derselbe Ablauf wie
+        // im Betrieb, nur ohne Warten auf einen Hintergrundfaden.
         ReviewService review = new ReviewService(standardClassificationService(),
                 new InMemoryReviewRepository(),
                 new ReviewProperties(new java.math.BigDecimal("0.85"), null),
                 reviewCase -> { },
-                documents);
+                documents, Runnable::run);
         return new Workflow(review, new DatevExportService(review, documents,
                 standardDocumentXmlWriter(), standardLedgerXmlWriter()));
     }
@@ -149,7 +151,8 @@ public final class Kontierung {
         ReviewRepository repository = new SqliteReviewRepository(jdbc, serializer);
         DocumentStore documents = new SqliteDocumentStore(jdbc);
         ReviewService review = new ReviewService(standardClassificationService(), repository,
-                new ReviewProperties(new java.math.BigDecimal("0.85"), null), reviewCase -> { }, documents);
+                new ReviewProperties(new java.math.BigDecimal("0.85"), null), reviewCase -> { },
+                documents, Runnable::run);
         DatevExportService export = new DatevExportService(review, documents,
                 standardDocumentXmlWriter(), standardLedgerXmlWriter());
         return new Persistence(review, export, repository, documents, dataSource);

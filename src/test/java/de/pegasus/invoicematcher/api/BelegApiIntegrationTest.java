@@ -91,13 +91,47 @@ class BelegApiIntegrationTest {
                 .andExpect(status().isNotFound());
     }
 
+
+    /**
+     * Reicht einen Beleg ein und wartet, bis die Klassifikation im Hintergrund durch ist.
+     *
+     * <p>Die Annahme antwortet bewusst sofort mit {@code IN_ARBEIT} (siehe
+     * {@code ReviewService#submit}); alles, was danach geprueft wird, braucht den fertigen
+     * Vorgang. Gewartet wird gegen die echte Hintergrundverarbeitung, nicht gegen eine
+     * synchrone Attrappe - sonst bliebe genau dieser Weg ungetestet.
+     */
+    private String eingereicht(String beleg) throws Exception {
+        String angenommen = mockMvc.perform(multipart("/api/v1/belege").file(upload(beleg)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("IN_ARBEIT"))
+                .andReturn().getResponse().getContentAsString();
+        String id = com.jayway.jsonpath.JsonPath.read(angenommen, "$.id");
+        for (int versuch = 0; versuch < 200; versuch++) {
+            String stand = mockMvc.perform(get("/api/v1/pruefungen/" + id))
+                    .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+            if (!"IN_ARBEIT".equals(com.jayway.jsonpath.JsonPath.read(stand, "$.status"))) {
+                return id;
+            }
+            Thread.sleep(50);
+        }
+        throw new AssertionError("Beleg '" + beleg + "' wurde nicht innerhalb von 10 Sekunden klassifiziert");
+    }
+
+    @Test
+    void acceptsADocumentImmediatelyAndClassifiesItAfterwards() throws Exception {
+        String id = eingereicht("09_ZUGFeRD_Unkastester_Furniere.pdf");
+
+        mockMvc.perform(get("/api/v1/pruefungen/" + id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("AUTOMATISCH_FREIGEGEBEN"))
+                .andExpect(jsonPath("$.ergebnis.buchungszeilen").isNotEmpty());
+    }
+
     @Test
     void submittingAFlaggedDocumentOpensAReviewCaseThatCanThenBeApproved() throws Exception {
-        String id = com.jayway.jsonpath.JsonPath.read(
-                mockMvc.perform(multipart("/api/v1/belege").file(upload("05_PDF_Buerobedarf_Kopierer.pdf")))
-                        .andExpect(status().isCreated())
-                        .andExpect(jsonPath("$.status").value("OFFEN"))
-                        .andReturn().getResponse().getContentAsString(), "$.id");
+        String id = eingereicht("05_PDF_Buerobedarf_Kopierer.pdf");
+        mockMvc.perform(get("/api/v1/pruefungen/" + id))
+                .andExpect(jsonPath("$.status").value("OFFEN"));
 
         mockMvc.perform(get("/api/v1/pruefungen"))
                 .andExpect(status().isOk())
@@ -161,9 +195,7 @@ class BelegApiIntegrationTest {
 
     @Test
     void exportedInvoiceCanBeExplicitlyExportedAgain() throws Exception {
-        String id = com.jayway.jsonpath.JsonPath.read(
-                mockMvc.perform(multipart("/api/v1/belege").file(upload("01_PDF_Klaus_Furniere.pdf")))
-                        .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(), "$.id");
+        String id = eingereicht("01_PDF_Klaus_Furniere.pdf");
         String selected = "{\"vorgaenge\":[\"" + id + "\"]}";
         mockMvc.perform(post("/api/v1/export/datev").contentType(MediaType.APPLICATION_JSON).content(selected))
                 .andExpect(status().isOk());
@@ -188,9 +220,7 @@ class BelegApiIntegrationTest {
 
     @Test
     void handsOutADatevDocumentPackageForApprovedDocuments() throws Exception {
-        mockMvc.perform(multipart("/api/v1/belege").file(upload("09_ZUGFeRD_Unkastester_Furniere.pdf")))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.status").value("AUTOMATISCH_FREIGEGEBEN"));
+        eingereicht("09_ZUGFeRD_Unkastester_Furniere.pdf");
 
         mockMvc.perform(get("/api/v1/export/offen"))
                 .andExpect(status().isOk())
