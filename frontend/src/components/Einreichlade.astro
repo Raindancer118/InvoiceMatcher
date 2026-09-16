@@ -5,7 +5,8 @@
  *
  * <p>Ein natives {@code <dialog>}: Fokusfalle, Escape und der abdunkelnde Hintergrund kommen
  * damit vom Browser statt aus nachgebautem Skript. Ohne Javascript bleibt der Knopf ein Link
- * auf die Ablage der Startseite - einreichen kann man dann immer noch.
+ * auf die Ablage der Startseite, und das Formular wird ganz normal abgeschickt - einreichen
+ * kann man also immer noch.
  */
 import Ablage from './Ablage.astro';
 ---
@@ -18,32 +19,81 @@ import Ablage from './Ablage.astro';
   <p class="lade-fuss klein">
     Bis zu 50 PDF-, ZUGFeRD- oder XRechnungs-Dateien — hierher ziehen oder in die Fläche klicken.
   </p>
+
+  <!--
+    Das Erfolgsbild legt sich einfarbig ueber die Ablage. Der Haken ist nicht gezeichnet,
+    sondern aus der Flaeche ausgestanzt: er traegt ihre Farbe und wird erst sichtbar, wenn der
+    gruene Kreis hinter ihm aufgeht.
+  -->
+  <div class="lade-fertig" role="status" hidden>
+    <svg class="haken-kreis" viewBox="0 0 64 64" aria-hidden="true">
+      <circle class="kreis-fuellung" cx="32" cy="32" r="32" />
+      <path class="haken" d="M18 33 l9 9 l19 -21" />
+    </svg>
+    <p>Eingereicht</p>
+  </div>
 </dialog>
 
 <script>
   const lade = document.getElementById('einreichlade') as HTMLDialogElement | null;
 
   if (lade && typeof lade.showModal === 'function') {
+    const formular = lade.querySelector('form.dropzone') as HTMLFormElement;
+    const fertig = lade.querySelector('.lade-fertig') as HTMLElement;
+    const meldung = formular.querySelector('.gewaehlt') as HTMLParagraphElement;
+
     // Erst oeffnen, dann im naechsten Bild die Klasse setzen: sonst faengt der Uebergang beim
     // Endzustand an und die Lade erscheint schlagartig, statt herunterzufahren.
     const oeffnen = () => {
+      fertig.hidden = true;
+      lade.classList.remove('gemeldet');
       lade.showModal();
       requestAnimationFrame(() => lade.classList.add('sichtbar'));
     };
-    const schliessen = () => {
+    const schliessen = (danach?: () => void) => {
       lade.classList.remove('sichtbar');
-      window.setTimeout(() => lade.open && lade.close(), 220);
+      window.setTimeout(() => {
+        if (lade.open) lade.close();
+        danach?.();
+      }, 240);
     };
 
     for (const ausloeser of document.querySelectorAll('[data-lade="einreichlade"]')) {
       ausloeser.addEventListener('click', (e) => { e.preventDefault(); oeffnen(); });
     }
     for (const knopf of lade.querySelectorAll('[data-lade-schliessen]')) {
-      knopf.addEventListener('click', schliessen);
+      knopf.addEventListener('click', () => schliessen());
     }
     // Klick auf den abgedunkelten Hintergrund schliesst - der Klick landet auf dem Dialog selbst.
     lade.addEventListener('click', (e) => { if (e.target === lade) schliessen(); });
     // Escape laeuft ueber das native 'cancel', damit der Uebergang auch dort laeuft.
     lade.addEventListener('cancel', (e) => { e.preventDefault(); schliessen(); });
+
+    // Einreichen ohne Seitenwechsel: erst das Erfolgsbild, dann faehrt die Lade zurueck und
+    // erst danach folgt die Seite dem Ziel, das der Server genannt hat (Vorgang bzw. Bericht).
+    formular.addEventListener('submit', async (e) => {
+      if (!formular.querySelector<HTMLInputElement>('input[type=file]')?.files?.length) return;
+      e.preventDefault();
+      try {
+        const antwort = await fetch(formular.action, { method: 'POST', body: new FormData(formular) });
+        const ziel = new URL(antwort.url);
+        const angenommen = ziel.pathname.startsWith('/vorgang/') || ziel.pathname.startsWith('/belege/ergebnis');
+        if (!angenommen) {
+          // Der Server hat abgelehnt (keine Datei, zu viele) und sagt warum - in der Lade zeigen,
+          // statt ein Erfolgsbild ueber einen Fehlschlag zu legen.
+          meldung.textContent = ziel.searchParams.get('meldung') ?? 'Einreichen fehlgeschlagen.';
+          meldung.hidden = false;
+          formular.removeAttribute('aria-busy');
+          return;
+        }
+        lade.classList.add('gemeldet');
+        fertig.hidden = false;
+        window.setTimeout(() => schliessen(() => { window.location.href = ziel.href; }), 1100);
+      } catch {
+        meldung.textContent = 'Einreichen fehlgeschlagen. Bitte erneut versuchen.';
+        meldung.hidden = false;
+        formular.removeAttribute('aria-busy');
+      }
+    });
   }
 </script>

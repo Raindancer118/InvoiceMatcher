@@ -176,6 +176,17 @@ test('Prüftisch: geschützte Seiten, Originale und vollständige Formularwege',
     assert.ok(lade.includes('multiple'), 'Mehrfachauswahl');
   });
 
+  await t.test('Die Ablage bringt ihr Erfolgsbild mit: Kreis, ausgestanzter Haken, Meldung', async () => {
+    const html = await (await get('/pruefliste')).text();
+    assert.ok(html.includes('class="lade-fertig"'), 'Erfolgsflaeche');
+    assert.match(html, /<svg[^>]*class="haken-kreis"/, 'Zeichnung');
+    assert.ok(html.includes('class="kreis-fuellung"'), 'fuellender Kreis');
+    assert.ok(html.includes('class="haken"'), 'Haken');
+    assert.ok(html.includes('Eingereicht'), 'Meldung');
+    // Der Haken traegt keine eigene Farbe: er wird aus der Flaechenfarbe ausgestanzt.
+    assert.match(html, /class="lade-fertig"[^>]*hidden/, 'erst nach dem Einreichen sichtbar');
+  });
+
   await t.test('Schlüsselansicht zeigt jeden Schlüssel maskiert samt Zustand', async () => {
     const html = await (await get('/schluessel')).text();
     for (const text of ['KI-Schlüssel', 'gsk_…a1b2', 'AIz…9876', 'Bereit', 'Gesperrt bis',
