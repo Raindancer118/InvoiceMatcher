@@ -215,7 +215,7 @@ const ki = await api.kiEinstellungen(sitzung.accessToken);
 <style>
   .formular { display: grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1.2rem; }
   .formular .btn,.feld-kasten,.feld:last-of-type { grid-column:1/-1; }
-  .feld { display: flex; flex-direction: column; gap: .3rem; font-size: .88rem; }
+  .feld { display: flex; flex-direction: column; gap: .3rem; font-size: var(--t-fliess); }
   .feld span { color: var(--text-2); font-weight: 600; }
   .feld input, .feld select {
     font: inherit; color: var(--text); background: var(--surface-page);
@@ -228,12 +228,12 @@ const ki = await api.kiEinstellungen(sitzung.accessToken);
   .formular #ki-test-button { margin-left: .6rem; }
   .formular-json { grid-template-columns: 1fr; }
   .feld-json textarea {
-    font: inherit; font-family: var(--font-mono, monospace); font-size: .82rem; color: var(--text);
+    font: inherit; font-family: var(--font-data); font-size: var(--t-neben); color: var(--text);
     background: var(--surface-page); border: 1px solid var(--border-strong); border-radius: var(--r-md);
     padding: .7rem; width: 100%; resize: vertical; min-height: 260px;
   }
   .feld-json textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .ki-test-status { grid-column: 1/-1; font-size: .85rem; margin: 0; }
+  .ki-test-status { grid-column: 1/-1; font-size: var(--t-neben); margin: 0; }
   @media(max-width:650px) { .formular { grid-template-columns:1fr; } }
 </style>
 
