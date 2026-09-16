@@ -1,59 +1,76 @@
 ---
-/** Die Ablageflaeche fuer neue Belege. Zweithaeufigste Handlung, deshalb neben der ersten. */
-interface Props { kompakt?: boolean }
-const { kompakt = false } = Astro.props;
+/**
+ * Die Ablageflaeche fuer neue Belege. Zweithaeufigste Handlung, deshalb neben der ersten.
+ *
+ * <p>Das Skript verdrahtet jede Flaeche auf der Seite einzeln (statt ueber feste IDs): dieselbe
+ * Ablage haengt einmal fest auf der Startseite und einmal in der herunterfahrenden Lade im Kopf
+ * (siehe {@code Einreichlade.astro}) - mit IDs waeren beide auf derselben Seite doppelt.
+ */
+interface Props { kompakt?: boolean; anker?: string }
+const { kompakt = false, anker } = Astro.props;
 ---
-<form class="dropzone" method="post" action="/belege/einreichen" enctype="multipart/form-data">
+<form class="dropzone" id={anker} method="post" action="/belege/einreichen" enctype="multipart/form-data">
   <h3>Belege einreichen</h3>
   {!kompakt && <p>Bis zu 50 PDF-, ZUGFeRD- oder XRechnungs-Dateien auswählen oder hierher ziehen.</p>}
-  <input type="file" name="datei" accept=".pdf,.xml,application/pdf,application/xml" aria-label="Belege auswählen" multiple required id="datei" />
-  <button class="btn btn-primary" type="submit" id="absenden">Einreichen</button>
-  <p class="gewaehlt" role="status" hidden id="gewaehlt"></p>
+  <input type="file" name="datei" accept=".pdf,.xml,application/pdf,application/xml" aria-label="Belege auswählen" multiple required />
+  <button class="btn btn-primary" type="submit">Einreichen</button>
+  <p class="gewaehlt" role="status" hidden></p>
 </form>
 
 <script>
-  const feld = document.getElementById('datei') as HTMLInputElement;
-  const absenden = document.getElementById('absenden') as HTMLButtonElement;
-  const gewaehlt = document.getElementById('gewaehlt') as HTMLParagraphElement;
-  const flaeche = feld.closest('.dropzone') as HTMLFormElement;
+  for (const knoten of document.querySelectorAll('form.dropzone')) {
+    const flaeche = knoten as HTMLFormElement;
+    const feld = flaeche.querySelector('input[type=file]') as HTMLInputElement;
+    const absenden = flaeche.querySelector('button[type=submit]') as HTMLButtonElement;
+    const gewaehlt = flaeche.querySelector('.gewaehlt') as HTMLParagraphElement;
 
-  function uebernehmen(dateien: FileList | null) {
-    if (!dateien || dateien.length === 0) return;
-    if (dateien.length > 50) {
-      feld.value = '';
-      gewaehlt.textContent = 'Bitte höchstens 50 Belege auf einmal auswählen.';
+    function uebernehmen(dateien: FileList | null) {
+      if (!dateien || dateien.length === 0) return;
+      if (dateien.length > 50) {
+        feld.value = '';
+        gewaehlt.textContent = 'Bitte höchstens 50 Belege auf einmal auswählen.';
+        gewaehlt.hidden = false;
+        return;
+      }
+      feld.files = dateien;
+      gewaehlt.textContent = Array.from(dateien).map((datei) => datei.name).join(' · ');
       gewaehlt.hidden = false;
-      return;
+      absenden.hidden = false;
     }
-    feld.files = dateien;
-    gewaehlt.textContent = Array.from(dateien).map((datei) => datei.name).join(' · ');
-    gewaehlt.hidden = false;
-    absenden.hidden = false;
-  }
 
-  feld.addEventListener('change', () => uebernehmen(feld.files));
-  flaeche.addEventListener('submit', () => {
-    absenden.disabled = true;
-    absenden.textContent = `${feld.files?.length ?? 0} Belege werden verarbeitet …`;
-    flaeche.setAttribute('aria-busy', 'true');
-  });
-  window.addEventListener('pageshow', () => {
-    absenden.disabled = false;
-    absenden.textContent = 'Einreichen';
-    flaeche.removeAttribute('aria-busy');
-  });
+    feld.addEventListener('change', () => uebernehmen(feld.files));
+    flaeche.addEventListener('submit', () => {
+      absenden.disabled = true;
+      absenden.textContent = `${feld.files?.length ?? 0} Belege werden verarbeitet …`;
+      flaeche.setAttribute('aria-busy', 'true');
+    });
+    window.addEventListener('pageshow', () => {
+      absenden.disabled = false;
+      absenden.textContent = 'Einreichen';
+      flaeche.removeAttribute('aria-busy');
+    });
 
-  // Ziehen und Ablegen ohne Bibliothek; der Klickweg bleibt vollstaendig erhalten.
-  for (const name of ['dragenter', 'dragover'] as const) {
-    flaeche.addEventListener(name, (e) => { e.preventDefault(); flaeche.classList.add('darueber'); });
+    // Die ganze Flaeche ist anklickbar - das Dateifeld selbst zu treffen ist unnoetig fummelig.
+    // Klicks auf die eigenen Bedienelemente bleiben unberuehrt, sonst oeffnete das Absenden
+    // gleich wieder die Dateiauswahl.
+    flaeche.addEventListener('click', (e) => {
+      const ziel = e.target as HTMLElement;
+      if (ziel.closest('button, input, a, label')) return;
+      feld.click();
+    });
+
+    // Ziehen und Ablegen ohne Bibliothek; der Klickweg bleibt vollstaendig erhalten.
+    for (const name of ['dragenter', 'dragover'] as const) {
+      flaeche.addEventListener(name, (e) => { e.preventDefault(); flaeche.classList.add('darueber'); });
+    }
+    for (const name of ['dragleave', 'drop'] as const) {
+      flaeche.addEventListener(name, () => flaeche.classList.remove('darueber'));
+    }
+    flaeche.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uebernehmen(e.dataTransfer?.files ?? null);
+    });
   }
-  for (const name of ['dragleave', 'drop'] as const) {
-    flaeche.addEventListener(name, () => flaeche.classList.remove('darueber'));
-  }
-  flaeche.addEventListener('drop', (e) => {
-    e.preventDefault();
-    uebernehmen(e.dataTransfer?.files ?? null);
-  });
 </script>
 
 <style is:global>

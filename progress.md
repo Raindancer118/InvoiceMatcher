@@ -1,6 +1,13 @@
 # Progress
 
 ## Umgesetzt
+- [x] **Einreich-Ablage faehrt von oben herein** (0.10.0): der Knopf "+ Beleg einreichen" im Kopf
+      oeffnet jetzt auf jeder Seite eine Lade, die von oben ins Bild faehrt und Belege per Klick
+      auf die Flaeche oder per Ziehen annimmt - vorher sprang er auf die Startseite. Natives
+      `<dialog>` (`Einreichlade.astro`), damit Fokusfalle, Escape und abgedunkelter Hintergrund
+      vom Browser kommen; ohne Javascript bleibt der Knopf ein Verweis auf die Ablage der
+      Startseite. `Ablage.astro` verdrahtet seine Flaechen jetzt einzeln statt ueber feste IDs,
+      weil dieselbe Ablage zweimal auf einer Seite haengen kann.
 - [x] **Schluesselansicht mit Kontingentstand** (0.9.0): eigene Seite `/schluessel` listet jeden
       hinterlegten KI-Schluessel beider Stufen - maskiert (`gsk_…a1b2`, der Klartext verlaesst
       den Server nie), mit Nutzungen, Fehlern, Kontingenttreffern und laufender Sperre aus dem

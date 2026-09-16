@@ -147,6 +147,24 @@ p { overflow-wrap:anywhere; }
 .hinweis p { margin:0; font-size:.88rem; }
 .marke { padding:.2rem .4rem; height:fit-content; font:12px var(--font-data); white-space:nowrap; }
 .m-warn { background:var(--amber-bg); color:var(--amber); } .m-info { background:var(--ink-state-bg); color:var(--ink-state); }
+/* Die Einreich-Ablage faehrt von oben herein: sie gehoert zum Kopf, aus dem sie aufgerufen
+   wird, und verdeckt die Seite nur so lange, wie man sie braucht. Natives <dialog>, die
+   Bewegung schaltet die globale Reduced-Motion-Regel mit ab. */
+.einreichlade { width:min(680px,100%); max-width:100%; margin:0 auto; padding:0; border:0;
+  position:fixed; top:0; left:0; right:0; background:var(--surface-card);
+  border-bottom:1px solid var(--border-strong); box-shadow:0 12px 40px rgb(23 23 19 / .22);
+  transform:translateY(-102%); transition:transform .22s cubic-bezier(.2,.7,.3,1); }
+.einreichlade.sichtbar { transform:translateY(0); }
+.einreichlade::backdrop { background:rgb(23 23 19 / .45); }
+.lade-griffleiste { display:flex; align-items:center; justify-content:space-between;
+  padding:.7rem 1.2rem; background:var(--archive); color:#fffef9;
+  font:600 .8rem/1 var(--font-body); text-transform:uppercase; letter-spacing:.06em; }
+.lade-schliessen { background:none; border:0; color:#fffef9; cursor:pointer; padding:.3rem .5rem;
+  font-size:1rem; line-height:1; }
+.lade-schliessen:hover { color:var(--approve); }
+.einreichlade .dropzone { border:0; margin:0; padding:1.6rem 1.2rem .4rem; background:var(--surface-card); }
+.einreichlade .dropzone h3 { margin-bottom:.8rem; }
+.einreichlade .lade-fuss { margin:0; padding:0 1.2rem 1.4rem; }
 /* Die Gedanken der KI liegen als Lade am rechten Rand des Prueftischs: der Buchungssatz bleibt
    sichtbar, die Herleitung kommt nur davor, wenn der Pruefer sie anfordert. Reines <details>,
    ohne Skript - die Seite rendert serverseitig und soll auch so bedienbar bleiben. */

@@ -1,5 +1,6 @@
 ---
 import '../styles/tokens.css';
+import Einreichlade from '../components/Einreichlade.astro';
 
 interface Props {
   titel: string;
@@ -45,7 +46,7 @@ const navigation = [
       </nav>
     )}
     {benutzer && (
-      <a class="btn btn-primary new-invoice" href="/#datei">+ Beleg einreichen</a>
+      <a class="btn btn-primary new-invoice" href="/#datei" data-lade="einreichlade">+ Beleg einreichen</a>
     )}
     {benutzer && (
       <details class="user">
@@ -58,5 +59,7 @@ const navigation = [
   <main id="inhalt" class:list={['wrap', { breit }]} tabindex="-1">
     <slot />
   </main>
+
+  {benutzer && <Einreichlade />}
 </body>
 </html>

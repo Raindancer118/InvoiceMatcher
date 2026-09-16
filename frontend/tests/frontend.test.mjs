@@ -159,6 +159,23 @@ test('Prüftisch: geschützte Seiten, Originale und vollständige Formularwege',
     assert.match(html, /Prüfbare Position/);
   });
 
+  await t.test('Die Einreich-Ablage hängt auf jeder Seite im Kopf und nimmt Dateien entgegen', async () => {
+    for (const pfad of ['/', '/pruefliste', '/export', '/schluessel']) {
+      const html = await (await get(pfad)).text();
+      assert.ok(html.includes('id="einreichlade"'), 'Lade auf ' + pfad);
+      assert.ok(html.includes('data-lade="einreichlade"'), 'Auslöser auf ' + pfad);
+      assert.match(html, /<dialog[^>]*class="einreichlade"/, 'natives dialog auf ' + pfad);
+      // Ohne Skript bleibt der Weg über die Startseite erhalten.
+      assert.ok(html.includes('href="/#datei"'), 'Rückfallweg auf ' + pfad);
+    }
+    // Der Rueckfallweg muss auch ankommen: die Startseite traegt den Anker.
+    assert.ok((await (await get('/')).text()).includes('id="datei"'), 'Anker auf der Startseite');
+    const lade = await (await get('/pruefliste')).text();
+    assert.ok(lade.includes('action="/belege/einreichen"'), 'Formularziel');
+    assert.ok(lade.includes('type="file"'), 'Dateifeld');
+    assert.ok(lade.includes('multiple'), 'Mehrfachauswahl');
+  });
+
   await t.test('Schlüsselansicht zeigt jeden Schlüssel maskiert samt Zustand', async () => {
     const html = await (await get('/schluessel')).text();
     for (const text of ['KI-Schlüssel', 'gsk_…a1b2', 'AIz…9876', 'Bereit', 'Gesperrt bis',

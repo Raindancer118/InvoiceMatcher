@@ -1,0 +1,49 @@
+---
+/**
+ * Die Einreich-Ablage im Kopf: faehrt auf Knopfdruck von oben herein und nimmt Belege per
+ * Klick oder Ziehen entgegen - von jeder Seite aus, ohne den Umweg ueber die Startseite.
+ *
+ * <p>Ein natives {@code <dialog>}: Fokusfalle, Escape und der abdunkelnde Hintergrund kommen
+ * damit vom Browser statt aus nachgebautem Skript. Ohne Javascript bleibt der Knopf ein Link
+ * auf die Ablage der Startseite - einreichen kann man dann immer noch.
+ */
+import Ablage from './Ablage.astro';
+---
+<dialog id="einreichlade" class="einreichlade" aria-label="Belege einreichen">
+  <div class="lade-griffleiste">
+    <span>Belege einreichen</span>
+    <button type="button" class="lade-schliessen" data-lade-schliessen aria-label="Ablage schließen">✕</button>
+  </div>
+  <Ablage kompakt />
+  <p class="lade-fuss klein">
+    Bis zu 50 PDF-, ZUGFeRD- oder XRechnungs-Dateien — hierher ziehen oder in die Fläche klicken.
+  </p>
+</dialog>
+
+<script>
+  const lade = document.getElementById('einreichlade') as HTMLDialogElement | null;
+
+  if (lade && typeof lade.showModal === 'function') {
+    // Erst oeffnen, dann im naechsten Bild die Klasse setzen: sonst faengt der Uebergang beim
+    // Endzustand an und die Lade erscheint schlagartig, statt herunterzufahren.
+    const oeffnen = () => {
+      lade.showModal();
+      requestAnimationFrame(() => lade.classList.add('sichtbar'));
+    };
+    const schliessen = () => {
+      lade.classList.remove('sichtbar');
+      window.setTimeout(() => lade.open && lade.close(), 220);
+    };
+
+    for (const ausloeser of document.querySelectorAll('[data-lade="einreichlade"]')) {
+      ausloeser.addEventListener('click', (e) => { e.preventDefault(); oeffnen(); });
+    }
+    for (const knopf of lade.querySelectorAll('[data-lade-schliessen]')) {
+      knopf.addEventListener('click', schliessen);
+    }
+    // Klick auf den abgedunkelten Hintergrund schliesst - der Klick landet auf dem Dialog selbst.
+    lade.addEventListener('click', (e) => { if (e.target === lade) schliessen(); });
+    // Escape laeuft ueber das native 'cancel', damit der Uebergang auch dort laeuft.
+    lade.addEventListener('cancel', (e) => { e.preventDefault(); schliessen(); });
+  }
+</script>

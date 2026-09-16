@@ -19,7 +19,7 @@ const unklar = ergebnisse?.filter((e) => e.unklar).length ?? 0;
       </li>)}
     </ul>
   </> : <p>Dieser Upload-Bericht ist abgelaufen oder gehört nicht zu deiner Sitzung. Bereits angenommene Belege findest du in der Prüfliste.</p>}
-  <p><a class="btn btn-primary" href="/pruefliste">Zur Prüfliste</a> <a class="btn btn-ghost" href="/#datei">Weitere Belege einreichen</a></p>
+  <p><a class="btn btn-primary" href="/pruefliste">Zur Prüfliste</a> <a class="btn btn-ghost" href="/#datei" data-lade="einreichlade">Weitere Belege einreichen</a></p>
 </Grundgeruest>
 <style>
   .upload-ergebnisse { list-style:none; margin:2rem 0; padding:0; }
